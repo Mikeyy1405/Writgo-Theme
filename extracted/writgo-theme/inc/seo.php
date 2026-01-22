@@ -43,7 +43,11 @@ function writgo_seo_meta_tags() {
 
         $url = get_permalink();
 
-        if (has_post_thumbnail()) {
+        // Check for custom OG image first, then featured image
+        $og_image_id = get_post_meta($post->ID, '_writgo_og_image', true);
+        if ($og_image_id) {
+            $image = wp_get_attachment_image_url($og_image_id, 'large');
+        } elseif (has_post_thumbnail()) {
             $image = get_the_post_thumbnail_url($post->ID, 'large');
         }
 
@@ -766,4 +770,290 @@ function writgo_flush_rewrite_rules() {
     writgo_register_sitemap_routes();
     writgo_register_llms_routes();
     flush_rewrite_rules();
+}
+
+/**
+ * =====================================================
+ * REDIRECT MANAGER
+ * =====================================================
+ */
+
+// Add admin menu
+add_action('admin_menu', 'writgo_redirect_manager_menu');
+function writgo_redirect_manager_menu() {
+    add_submenu_page(
+        'tools.php',
+        __('Redirect Manager', 'writgo-affiliate'),
+        __('Redirects', 'writgo-affiliate'),
+        'manage_options',
+        'writgo-redirects',
+        'writgo_redirect_manager_page'
+    );
+}
+
+// Handle form submissions
+add_action('admin_init', 'writgo_handle_redirect_actions');
+function writgo_handle_redirect_actions() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    // Add redirect
+    if (isset($_POST['writgo_add_redirect']) && wp_verify_nonce($_POST['writgo_redirect_nonce'], 'writgo_redirect_action')) {
+        $redirects = get_option('writgo_redirects', array());
+        $from = sanitize_text_field($_POST['redirect_from']);
+        $to = esc_url_raw($_POST['redirect_to']);
+        $type = in_array($_POST['redirect_type'], array('301', '302')) ? $_POST['redirect_type'] : '301';
+
+        if ($from && $to) {
+            $redirects[] = array(
+                'from' => $from,
+                'to' => $to,
+                'type' => $type,
+                'hits' => 0,
+                'created' => current_time('mysql')
+            );
+            update_option('writgo_redirects', $redirects);
+            add_settings_error('writgo_redirects', 'redirect_added', __('Redirect toegevoegd.', 'writgo-affiliate'), 'success');
+        }
+    }
+
+    // Delete redirect
+    if (isset($_GET['delete_redirect']) && isset($_GET['_wpnonce']) && wp_verify_nonce($_GET['_wpnonce'], 'delete_redirect')) {
+        $redirects = get_option('writgo_redirects', array());
+        $index = intval($_GET['delete_redirect']);
+        if (isset($redirects[$index])) {
+            unset($redirects[$index]);
+            $redirects = array_values($redirects);
+            update_option('writgo_redirects', $redirects);
+        }
+        wp_redirect(admin_url('tools.php?page=writgo-redirects&deleted=1'));
+        exit;
+    }
+}
+
+// Admin page
+function writgo_redirect_manager_page() {
+    $redirects = get_option('writgo_redirects', array());
+    ?>
+    <div class="wrap">
+        <h1><?php _e('Redirect Manager', 'writgo-affiliate'); ?></h1>
+
+        <?php settings_errors('writgo_redirects'); ?>
+
+        <?php if (isset($_GET['deleted'])) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php _e('Redirect verwijderd.', 'writgo-affiliate'); ?></p></div>
+        <?php endif; ?>
+
+        <div class="writgo-redirect-wrapper" style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px; margin-top: 20px;">
+            <!-- Add New -->
+            <div class="writgo-redirect-add" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h2 style="margin-top: 0;"><?php _e('Nieuwe Redirect', 'writgo-affiliate'); ?></h2>
+                <form method="post">
+                    <?php wp_nonce_field('writgo_redirect_action', 'writgo_redirect_nonce'); ?>
+
+                    <p>
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;"><?php _e('Van URL (relatief)', 'writgo-affiliate'); ?></label>
+                        <input type="text" name="redirect_from" placeholder="/oude-pagina/" style="width: 100%; padding: 8px;" required />
+                        <span style="font-size: 12px; color: #666;"><?php _e('Bijv: /oude-url/ of /categorie/oude-post/', 'writgo-affiliate'); ?></span>
+                    </p>
+
+                    <p>
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;"><?php _e('Naar URL', 'writgo-affiliate'); ?></label>
+                        <input type="url" name="redirect_to" placeholder="https://..." style="width: 100%; padding: 8px;" required />
+                    </p>
+
+                    <p>
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;"><?php _e('Type', 'writgo-affiliate'); ?></label>
+                        <select name="redirect_type" style="width: 100%; padding: 8px;">
+                            <option value="301"><?php _e('301 - Permanent', 'writgo-affiliate'); ?></option>
+                            <option value="302"><?php _e('302 - Tijdelijk', 'writgo-affiliate'); ?></option>
+                        </select>
+                    </p>
+
+                    <p>
+                        <button type="submit" name="writgo_add_redirect" class="button button-primary"><?php _e('Redirect Toevoegen', 'writgo-affiliate'); ?></button>
+                    </p>
+                </form>
+            </div>
+
+            <!-- List -->
+            <div class="writgo-redirect-list" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h2 style="margin-top: 0;"><?php _e('Actieve Redirects', 'writgo-affiliate'); ?> <span style="font-weight: normal; color: #666;">(<?php echo count($redirects); ?>)</span></h2>
+
+                <?php if (empty($redirects)) : ?>
+                    <p style="color: #666;"><?php _e('Nog geen redirects aangemaakt.', 'writgo-affiliate'); ?></p>
+                <?php else : ?>
+                    <table class="widefat striped">
+                        <thead>
+                            <tr>
+                                <th><?php _e('Van', 'writgo-affiliate'); ?></th>
+                                <th><?php _e('Naar', 'writgo-affiliate'); ?></th>
+                                <th><?php _e('Type', 'writgo-affiliate'); ?></th>
+                                <th><?php _e('Hits', 'writgo-affiliate'); ?></th>
+                                <th><?php _e('Actie', 'writgo-affiliate'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($redirects as $index => $redirect) : ?>
+                                <tr>
+                                    <td><code><?php echo esc_html($redirect['from']); ?></code></td>
+                                    <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis;"><?php echo esc_url($redirect['to']); ?></td>
+                                    <td><span style="background: <?php echo $redirect['type'] === '301' ? '#dcfce7' : '#fef3c7'; ?>; padding: 2px 8px; border-radius: 4px; font-size: 12px;"><?php echo esc_html($redirect['type']); ?></span></td>
+                                    <td><?php echo intval($redirect['hits'] ?? 0); ?></td>
+                                    <td>
+                                        <a href="<?php echo wp_nonce_url(admin_url('tools.php?page=writgo-redirects&delete_redirect=' . $index), 'delete_redirect'); ?>" onclick="return confirm('<?php _e('Weet je zeker dat je deze redirect wilt verwijderen?', 'writgo-affiliate'); ?>');" style="color: #dc2626;"><?php _e('Verwijderen', 'writgo-affiliate'); ?></a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php
+}
+
+// Execute redirects
+add_action('template_redirect', 'writgo_execute_redirects', 1);
+function writgo_execute_redirects() {
+    if (is_admin()) {
+        return;
+    }
+
+    $redirects = get_option('writgo_redirects', array());
+    if (empty($redirects)) {
+        return;
+    }
+
+    $current_path = $_SERVER['REQUEST_URI'];
+    $current_path = strtok($current_path, '?'); // Remove query string
+
+    foreach ($redirects as $index => $redirect) {
+        $from = rtrim($redirect['from'], '/');
+        $current = rtrim($current_path, '/');
+
+        if ($from === $current || $redirect['from'] === $current_path) {
+            // Update hit counter
+            $redirects[$index]['hits'] = ($redirect['hits'] ?? 0) + 1;
+            update_option('writgo_redirects', $redirects);
+
+            // Perform redirect
+            $type = $redirect['type'] === '302' ? 302 : 301;
+            wp_redirect($redirect['to'], $type);
+            exit;
+        }
+    }
+}
+
+/**
+ * =====================================================
+ * REVIEW/PRODUCT SCHEMA
+ * =====================================================
+ */
+add_action('wp_head', 'writgo_review_schema');
+function writgo_review_schema() {
+    if (!is_singular('post')) {
+        return;
+    }
+
+    global $post;
+
+    // Check if this post has a review score
+    $score = get_post_meta($post->ID, '_writgo_score', true);
+    if (!$score) {
+        return;
+    }
+
+    // Get product info from sticky CTA if available
+    $product_name = get_post_meta($post->ID, '_writgo_sticky_title', true);
+    if (!$product_name) {
+        $product_name = get_the_title();
+    }
+
+    $custom_description = get_post_meta($post->ID, '_writgo_seo_description', true);
+    $description = $custom_description ? $custom_description : wp_trim_words(strip_tags($post->post_content), 30);
+
+    $schema = array(
+        '@context' => 'https://schema.org',
+        '@type' => 'Review',
+        'itemReviewed' => array(
+            '@type' => 'Product',
+            'name' => $product_name,
+        ),
+        'reviewRating' => array(
+            '@type' => 'Rating',
+            'ratingValue' => floatval($score),
+            'bestRating' => '10',
+            'worstRating' => '0'
+        ),
+        'author' => array(
+            '@type' => 'Person',
+            'name' => get_the_author()
+        ),
+        'publisher' => array(
+            '@type' => 'Organization',
+            'name' => get_bloginfo('name')
+        ),
+        'datePublished' => get_the_date('c'),
+        'reviewBody' => $description
+    );
+
+    // Add product image if featured image exists
+    if (has_post_thumbnail()) {
+        $schema['itemReviewed']['image'] = get_the_post_thumbnail_url($post->ID, 'large');
+    }
+
+    // Add price if available
+    $price = get_post_meta($post->ID, '_writgo_sticky_price', true);
+    if ($price) {
+        $schema['itemReviewed']['offers'] = array(
+            '@type' => 'Offer',
+            'price' => floatval(str_replace(',', '.', $price)),
+            'priceCurrency' => 'EUR',
+            'availability' => 'https://schema.org/InStock'
+        );
+    }
+
+    // Add affiliate URL if available
+    $url = get_post_meta($post->ID, '_writgo_sticky_url', true);
+    if ($url) {
+        $schema['itemReviewed']['url'] = $url;
+    }
+
+    echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>' . "\n";
+}
+
+/**
+ * =====================================================
+ * CUSTOM OG IMAGE & SOCIAL PREVIEWS
+ * =====================================================
+ */
+
+// Add OG image meta field support (handled in meta-boxes.php)
+// This filter uses the custom OG image if set
+add_filter('wp_head', 'writgo_custom_og_image_output', 2);
+function writgo_custom_og_image_output() {
+    if (!is_singular()) {
+        return;
+    }
+
+    // Skip if Yoast or RankMath is active
+    if (defined('WPSEO_VERSION') || class_exists('RankMath')) {
+        return;
+    }
+
+    global $post;
+    $og_image_id = get_post_meta($post->ID, '_writgo_og_image', true);
+
+    if ($og_image_id) {
+        $og_image_url = wp_get_attachment_image_url($og_image_id, 'large');
+        if ($og_image_url) {
+            // The main og:image is output in writgo_seo_meta_tags
+            // We add additional image metadata here
+            echo '<meta property="og:image:width" content="1200">' . "\n";
+            echo '<meta property="og:image:height" content="630">' . "\n";
+        }
+    }
 }

@@ -10,6 +10,16 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * Enqueue media uploader for SEO meta box
+ */
+add_action('admin_enqueue_scripts', 'writgo_enqueue_media_uploader');
+function writgo_enqueue_media_uploader($hook) {
+    if ($hook === 'post.php' || $hook === 'post-new.php') {
+        wp_enqueue_media();
+    }
+}
+
+/**
  * Register Meta Boxes
  */
 add_action('add_meta_boxes', 'writgo_register_meta_boxes');
@@ -336,6 +346,79 @@ function writgo_seo_options_callback($post) {
                 </div>
             </div>
         </div>
+
+        <!-- Social Media Preview & OG Image -->
+        <?php
+        $og_image_id = get_post_meta($post->ID, '_writgo_og_image', true);
+        $og_image_url = $og_image_id ? wp_get_attachment_image_url($og_image_id, 'medium') : '';
+        $featured_image_url = has_post_thumbnail($post->ID) ? get_the_post_thumbnail_url($post->ID, 'medium') : '';
+        $preview_image = $og_image_url ?: $featured_image_url;
+        ?>
+        <div class="writgo-seo-section">
+            <h4><span>📱</span> Social Media</h4>
+
+            <!-- Social Preview Tabs -->
+            <div class="writgo-social-tabs" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button type="button" class="writgo-tab-btn active" data-tab="facebook" style="padding: 8px 16px; border: 1px solid #e2e8f0; background: #f97316; color: #fff; border-radius: 6px; cursor: pointer;">Facebook</button>
+                <button type="button" class="writgo-tab-btn" data-tab="twitter" style="padding: 8px 16px; border: 1px solid #e2e8f0; background: #fff; color: #334155; border-radius: 6px; cursor: pointer;">X / Twitter</button>
+            </div>
+
+            <!-- Facebook Preview -->
+            <div class="writgo-social-preview" id="writgo-fb-preview" style="background: #fff; border: 1px solid #dddfe2; border-radius: 8px; overflow: hidden; max-width: 500px;">
+                <div style="aspect-ratio: 1.91/1; background: #f0f2f5; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <?php if ($preview_image) : ?>
+                        <img src="<?php echo esc_url($preview_image); ?>" id="writgo-fb-preview-img" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <?php else : ?>
+                        <div id="writgo-fb-preview-img" style="color: #65676b; font-size: 14px;">Geen afbeelding</div>
+                    <?php endif; ?>
+                </div>
+                <div style="padding: 12px; background: #f0f2f5;">
+                    <div style="font-size: 12px; color: #65676b; text-transform: uppercase;"><?php echo esc_html(parse_url(home_url(), PHP_URL_HOST)); ?></div>
+                    <div id="writgo-fb-title" style="font-size: 16px; font-weight: 600; color: #1c1e21; margin: 4px 0; line-height: 1.3;"><?php echo esc_html($seo_title ?: $default_title); ?></div>
+                    <div id="writgo-fb-desc" style="font-size: 14px; color: #65676b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"><?php echo esc_html($seo_description ?: $default_description); ?></div>
+                </div>
+            </div>
+
+            <!-- Twitter Preview -->
+            <div class="writgo-social-preview" id="writgo-tw-preview" style="background: #fff; border: 1px solid #cfd9de; border-radius: 16px; overflow: hidden; max-width: 500px; display: none;">
+                <div style="aspect-ratio: 2/1; background: #f7f9f9; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <?php if ($preview_image) : ?>
+                        <img src="<?php echo esc_url($preview_image); ?>" id="writgo-tw-preview-img" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <?php else : ?>
+                        <div id="writgo-tw-preview-img" style="color: #536471; font-size: 14px;">Geen afbeelding</div>
+                    <?php endif; ?>
+                </div>
+                <div style="padding: 12px;">
+                    <div id="writgo-tw-title" style="font-size: 15px; font-weight: 400; color: #0f1419; line-height: 1.3;"><?php echo esc_html($seo_title ?: $default_title); ?></div>
+                    <div id="writgo-tw-desc" style="font-size: 15px; color: #536471; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"><?php echo esc_html($seo_description ?: $default_description); ?></div>
+                    <div style="font-size: 15px; color: #536471; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="#536471"><path d="M18.36 5.64c-1.95-1.96-5.11-1.96-7.07 0L9.88 7.05 8.46 5.64l1.42-1.42c2.73-2.73 7.16-2.73 9.9 0 2.73 2.74 2.73 7.17 0 9.9l-1.42 1.42-1.41-1.42 1.41-1.41c1.96-1.96 1.96-5.12 0-7.07zm-2.12 3.53l-7.07 7.07-1.41-1.41 7.07-7.07 1.41 1.41zm-12.02.71l1.42-1.42 1.41 1.42-1.41 1.41c-1.96 1.96-1.96 5.12 0 7.07 1.95 1.96 5.11 1.96 7.07 0l1.41-1.41 1.42 1.41-1.42 1.42c-2.73 2.73-7.16 2.73-9.9 0-2.73-2.74-2.73-7.17 0-9.9z"/></svg>
+                        <?php echo esc_html(parse_url(home_url(), PHP_URL_HOST)); ?>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OG Image Selector -->
+            <div class="writgo-seo-row" style="margin-top: 20px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 8px;">Social Media Afbeelding</label>
+                <p style="font-size: 12px; color: #64748b; margin: 0 0 10px;">Optioneel: Kies een andere afbeelding voor social media (1200x630px aanbevolen)</p>
+
+                <div id="writgo-og-image-preview" style="margin-bottom: 10px;">
+                    <?php if ($og_image_url) : ?>
+                        <img src="<?php echo esc_url($og_image_url); ?>" style="max-width: 300px; height: auto; border-radius: 8px; border: 1px solid #e2e8f0;" />
+                    <?php endif; ?>
+                </div>
+
+                <input type="hidden" name="writgo_og_image" id="writgo_og_image" value="<?php echo esc_attr($og_image_id); ?>" />
+
+                <button type="button" id="writgo-og-image-btn" class="button" style="margin-right: 8px;">
+                    <?php echo $og_image_id ? __('Afbeelding wijzigen', 'writgo-affiliate') : __('Afbeelding kiezen', 'writgo-affiliate'); ?>
+                </button>
+                <?php if ($og_image_id) : ?>
+                    <button type="button" id="writgo-og-image-remove" class="button" style="color: #dc2626;"><?php _e('Verwijderen', 'writgo-affiliate'); ?></button>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -421,6 +504,105 @@ function writgo_seo_options_callback($post) {
         updateTitleCount();
         updateDescCount();
         checkKeyword();
+
+        // Social preview tabs
+        document.querySelectorAll('.writgo-tab-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.writgo-tab-btn').forEach(function(b) {
+                    b.style.background = '#fff';
+                    b.style.color = '#334155';
+                    b.classList.remove('active');
+                });
+                this.style.background = '#f97316';
+                this.style.color = '#fff';
+                this.classList.add('active');
+
+                var tab = this.getAttribute('data-tab');
+                document.getElementById('writgo-fb-preview').style.display = tab === 'facebook' ? 'block' : 'none';
+                document.getElementById('writgo-tw-preview').style.display = tab === 'twitter' ? 'block' : 'none';
+            });
+        });
+
+        // Update social previews when SEO fields change
+        function updateSocialPreviews() {
+            var title = titleInput.value || titleInput.getAttribute('data-default');
+            var desc = descInput.value || descInput.getAttribute('data-default');
+
+            document.getElementById('writgo-fb-title').textContent = title;
+            document.getElementById('writgo-fb-desc').textContent = desc;
+            document.getElementById('writgo-tw-title').textContent = title;
+            document.getElementById('writgo-tw-desc').textContent = desc;
+        }
+
+        titleInput.addEventListener('input', updateSocialPreviews);
+        descInput.addEventListener('input', updateSocialPreviews);
+
+        // OG Image uploader
+        var ogImageBtn = document.getElementById('writgo-og-image-btn');
+        var ogImageInput = document.getElementById('writgo_og_image');
+        var ogImagePreview = document.getElementById('writgo-og-image-preview');
+        var ogImageRemove = document.getElementById('writgo-og-image-remove');
+
+        if (ogImageBtn) {
+            ogImageBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var frame = wp.media({
+                    title: 'Kies Social Media Afbeelding',
+                    button: { text: 'Selecteren' },
+                    multiple: false,
+                    library: { type: 'image' }
+                });
+
+                frame.on('select', function() {
+                    var attachment = frame.state().get('selection').first().toJSON();
+                    ogImageInput.value = attachment.id;
+                    ogImagePreview.innerHTML = '<img src="' + attachment.sizes.medium.url + '" style="max-width: 300px; height: auto; border-radius: 8px; border: 1px solid #e2e8f0;" />';
+                    ogImageBtn.textContent = 'Afbeelding wijzigen';
+
+                    // Update social previews
+                    var fbImg = document.getElementById('writgo-fb-preview-img');
+                    var twImg = document.getElementById('writgo-tw-preview-img');
+                    if (fbImg.tagName === 'IMG') {
+                        fbImg.src = attachment.sizes.medium.url;
+                    } else {
+                        fbImg.outerHTML = '<img src="' + attachment.sizes.medium.url + '" id="writgo-fb-preview-img" style="width: 100%; height: 100%; object-fit: cover;" />';
+                    }
+                    if (twImg.tagName === 'IMG') {
+                        twImg.src = attachment.sizes.medium.url;
+                    } else {
+                        twImg.outerHTML = '<img src="' + attachment.sizes.medium.url + '" id="writgo-tw-preview-img" style="width: 100%; height: 100%; object-fit: cover;" />';
+                    }
+
+                    // Add remove button if not exists
+                    if (!document.getElementById('writgo-og-image-remove')) {
+                        var removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.id = 'writgo-og-image-remove';
+                        removeBtn.className = 'button';
+                        removeBtn.style.color = '#dc2626';
+                        removeBtn.textContent = 'Verwijderen';
+                        ogImageBtn.parentNode.appendChild(removeBtn);
+                        attachRemoveHandler(removeBtn);
+                    }
+                });
+
+                frame.open();
+            });
+        }
+
+        function attachRemoveHandler(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                ogImageInput.value = '';
+                ogImagePreview.innerHTML = '';
+                ogImageBtn.textContent = 'Afbeelding kiezen';
+                this.remove();
+            });
+        }
+
+        if (ogImageRemove) {
+            attachRemoveHandler(ogImageRemove);
+        }
     })();
     </script>
     <?php
@@ -558,6 +740,16 @@ function writgo_save_meta_boxes($post_id) {
     if (isset($_POST['writgo_robots_follow'])) {
         $robots_follow = in_array($_POST['writgo_robots_follow'], array('follow', 'nofollow')) ? $_POST['writgo_robots_follow'] : 'follow';
         update_post_meta($post_id, '_writgo_robots_follow', $robots_follow);
+    }
+
+    // Save OG Image
+    if (isset($_POST['writgo_og_image'])) {
+        $og_image = intval($_POST['writgo_og_image']);
+        if ($og_image > 0) {
+            update_post_meta($post_id, '_writgo_og_image', $og_image);
+        } else {
+            delete_post_meta($post_id, '_writgo_og_image');
+        }
     }
 
     // Save Sticky CTA options
