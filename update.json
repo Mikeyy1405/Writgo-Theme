@@ -1,0 +1,14 @@
+{
+    "name": "Writgo Affiliate Theme",
+    "version": "7.5.5",
+    "author": "Writgo Media",
+    "homepage": "https://writgo.nl",
+    "requires": "5.0",
+    "tested": "6.4",
+    "requires_php": "7.4",
+    "download_url": "https://JOUW-URL-HIER/writgo-theme.zip",
+    "details_url": "https://writgo.nl/theme-changelog/",
+    "description": "Professioneel WordPress affiliate thema met conversie-geoptimaliseerde elementen, juridische pagina's, en trust signals.",
+    "changelog": "<h4>v7.5.5</h4><ul><li>Auto-update systeem toegevoegd</li><li>Contact pagina met formulier</li><li>Verbeterde footer met trust signals</li></ul><h4>v7.5.4</h4><ul><li>Professionele Contact pagina</li><li>FAQ sectie op contact pagina</li><li>Social media knoppen</li></ul><h4>v7.4.0</h4><ul><li>Affiliate shortcodes toolkit</li><li>Product boxes, vergelijkingstabellen</li><li>Sticky CTA bar</li></ul>",
+    "last_updated": "2026-01-22"
+}
