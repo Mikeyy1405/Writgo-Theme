@@ -1517,3 +1517,528 @@ function writgo_internal_links_customizer($wp_customize) {
         'type' => 'checkbox',
     ));
 }
+
+/**
+ * =====================================================
+ * AFFILIATE LINK MANAGER
+ * Link cloaking: /go/product-naam/ -> affiliate URL
+ * Click tracking, auto nofollow/sponsored
+ * =====================================================
+ */
+
+// Register /go/ rewrite rules
+add_action('init', 'writgo_register_affiliate_routes');
+function writgo_register_affiliate_routes() {
+    add_rewrite_rule('^go/([^/]+)/?$', 'index.php?writgo_affiliate_link=$matches[1]', 'top');
+}
+
+add_filter('query_vars', 'writgo_affiliate_query_vars');
+function writgo_affiliate_query_vars($vars) {
+    $vars[] = 'writgo_affiliate_link';
+    return $vars;
+}
+
+// Handle affiliate redirects
+add_action('template_redirect', 'writgo_handle_affiliate_redirect');
+function writgo_handle_affiliate_redirect() {
+    $slug = get_query_var('writgo_affiliate_link');
+    if (!$slug) {
+        return;
+    }
+
+    $links = get_option('writgo_affiliate_links', array());
+
+    foreach ($links as $index => $link) {
+        if ($link['slug'] === $slug) {
+            // Update click count
+            $links[$index]['clicks'] = ($link['clicks'] ?? 0) + 1;
+            $links[$index]['last_click'] = current_time('mysql');
+            update_option('writgo_affiliate_links', $links);
+
+            // Redirect to affiliate URL
+            wp_redirect($link['url'], 302);
+            exit;
+        }
+    }
+
+    // Link not found - redirect to homepage
+    wp_redirect(home_url('/'), 302);
+    exit;
+}
+
+// Admin menu
+add_action('admin_menu', 'writgo_affiliate_links_menu');
+function writgo_affiliate_links_menu() {
+    add_submenu_page(
+        'tools.php',
+        __('Affiliate Links', 'writgo-affiliate'),
+        __('Affiliate Links', 'writgo-affiliate'),
+        'manage_options',
+        'writgo-affiliate-links',
+        'writgo_affiliate_links_page'
+    );
+}
+
+// Handle form submissions
+add_action('admin_init', 'writgo_handle_affiliate_link_actions');
+function writgo_handle_affiliate_link_actions() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    // Add affiliate link
+    if (isset($_POST['writgo_add_affiliate']) && wp_verify_nonce($_POST['writgo_aff_nonce'], 'writgo_aff_action')) {
+        $links = get_option('writgo_affiliate_links', array());
+        $name = sanitize_text_field($_POST['aff_name']);
+        $url = esc_url_raw($_POST['aff_url']);
+        $slug = sanitize_title($_POST['aff_slug'] ?: $name);
+        $network = sanitize_text_field($_POST['aff_network']);
+
+        // Check for duplicate slug
+        foreach ($links as $link) {
+            if ($link['slug'] === $slug) {
+                $slug = $slug . '-' . rand(100, 999);
+                break;
+            }
+        }
+
+        $keywords = sanitize_text_field($_POST['aff_keywords']);
+        $max = intval($_POST['aff_max']) ?: 1;
+
+        if ($name && $url) {
+            $links[] = array(
+                'name' => $name,
+                'url' => $url,
+                'slug' => $slug,
+                'network' => $network,
+                'keywords' => $keywords,
+                'max' => $max,
+                'clicks' => 0,
+                'created' => current_time('mysql')
+            );
+            update_option('writgo_affiliate_links', $links);
+
+            // Flush rewrite rules
+            flush_rewrite_rules();
+
+            add_settings_error('writgo_aff', 'aff_added', __('Affiliate link toegevoegd.', 'writgo-affiliate'), 'success');
+        }
+    }
+
+    // Delete affiliate link
+    if (isset($_GET['delete_aff']) && isset($_GET['_wpnonce']) && wp_verify_nonce($_GET['_wpnonce'], 'delete_aff')) {
+        $links = get_option('writgo_affiliate_links', array());
+        $index = intval($_GET['delete_aff']);
+        if (isset($links[$index])) {
+            unset($links[$index]);
+            $links = array_values($links);
+            update_option('writgo_affiliate_links', $links);
+        }
+        wp_redirect(admin_url('tools.php?page=writgo-affiliate-links&deleted=1'));
+        exit;
+    }
+}
+
+// Admin page
+function writgo_affiliate_links_page() {
+    $links = get_option('writgo_affiliate_links', array());
+    $total_clicks = array_sum(array_column($links, 'clicks'));
+    ?>
+    <div class="wrap">
+        <h1><?php _e('Affiliate Link Manager', 'writgo-affiliate'); ?></h1>
+        <p><?php _e('Beheer je affiliate links met cloaking (/go/naam/) en click tracking.', 'writgo-affiliate'); ?></p>
+
+        <?php settings_errors('writgo_aff'); ?>
+
+        <?php if (isset($_GET['deleted'])) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php _e('Affiliate link verwijderd.', 'writgo-affiliate'); ?></p></div>
+        <?php endif; ?>
+
+        <!-- Stats -->
+        <div style="display: flex; gap: 20px; margin: 20px 0;">
+            <div style="background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; padding: 20px 30px; border-radius: 12px;">
+                <div style="font-size: 32px; font-weight: 700;"><?php echo count($links); ?></div>
+                <div style="opacity: 0.9;">Affiliate Links</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; padding: 20px 30px; border-radius: 12px;">
+                <div style="font-size: 32px; font-weight: 700;"><?php echo number_format($total_clicks); ?></div>
+                <div style="opacity: 0.9;">Totaal Clicks</div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px;">
+            <!-- Add New -->
+            <div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h2 style="margin-top: 0;"><?php _e('Nieuwe Affiliate Link', 'writgo-affiliate'); ?></h2>
+                <form method="post">
+                    <?php wp_nonce_field('writgo_aff_action', 'writgo_aff_nonce'); ?>
+
+                    <p>
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;"><?php _e('Naam', 'writgo-affiliate'); ?></label>
+                        <input type="text" name="aff_name" placeholder="bijv. Bol.com Laptop X" style="width: 100%; padding: 8px;" required />
+                    </p>
+
+                    <p>
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;"><?php _e('Affiliate URL', 'writgo-affiliate'); ?></label>
+                        <input type="url" name="aff_url" placeholder="https://partner.bol.com/..." style="width: 100%; padding: 8px;" required />
+                    </p>
+
+                    <p>
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;"><?php _e('Slug (optioneel)', 'writgo-affiliate'); ?></label>
+                        <input type="text" name="aff_slug" placeholder="laptop-x" style="width: 100%; padding: 8px;" />
+                        <span style="font-size: 12px; color: #666;"><?php echo home_url('/go/'); ?><strong>slug</strong>/</span>
+                    </p>
+
+                    <p>
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;"><?php _e('Netwerk', 'writgo-affiliate'); ?></label>
+                        <select name="aff_network" style="width: 100%; padding: 8px;">
+                            <option value="">-- Selecteer --</option>
+                            <option value="bol">Bol.com</option>
+                            <option value="amazon">Amazon</option>
+                            <option value="coolblue">Coolblue</option>
+                            <option value="tradetracker">TradeTracker</option>
+                            <option value="daisycon">Daisycon</option>
+                            <option value="awin">Awin</option>
+                            <option value="other">Anders</option>
+                        </select>
+                    </p>
+
+                    <p>
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;"><?php _e('Auto-link keywords (optioneel)', 'writgo-affiliate'); ?></label>
+                        <input type="text" name="aff_keywords" placeholder="laptop, beste laptop, laptop kopen" style="width: 100%; padding: 8px;" />
+                        <span style="font-size: 12px; color: #666;"><?php _e('Komma-gescheiden. Deze keywords worden automatisch gelinkt in je content.', 'writgo-affiliate'); ?></span>
+                    </p>
+
+                    <p>
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;"><?php _e('Max auto-links per artikel', 'writgo-affiliate'); ?></label>
+                        <input type="number" name="aff_max" value="1" min="1" max="5" style="width: 80px; padding: 8px;" />
+                    </p>
+
+                    <p>
+                        <button type="submit" name="writgo_add_affiliate" class="button button-primary"><?php _e('Toevoegen', 'writgo-affiliate'); ?></button>
+                    </p>
+                </form>
+            </div>
+
+            <!-- List -->
+            <div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h2 style="margin-top: 0;"><?php _e('Actieve Affiliate Links', 'writgo-affiliate'); ?></h2>
+
+                <?php if (empty($links)) : ?>
+                    <p style="color: #666;"><?php _e('Nog geen affiliate links. Voeg je eerste link toe!', 'writgo-affiliate'); ?></p>
+                <?php else : ?>
+                    <table class="widefat striped">
+                        <thead>
+                            <tr>
+                                <th><?php _e('Naam', 'writgo-affiliate'); ?></th>
+                                <th><?php _e('Cloaked URL', 'writgo-affiliate'); ?></th>
+                                <th><?php _e('Auto-link Keywords', 'writgo-affiliate'); ?></th>
+                                <th><?php _e('Clicks', 'writgo-affiliate'); ?></th>
+                                <th><?php _e('Actie', 'writgo-affiliate'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($links as $index => $link) : ?>
+                                <tr>
+                                    <td>
+                                        <strong><?php echo esc_html($link['name']); ?></strong>
+                                        <?php if (!empty($link['network'])) : ?>
+                                            <br><span style="font-size: 11px; color: #666;"><?php echo esc_html(ucfirst($link['network'])); ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <code style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 11px;">/go/<?php echo esc_html($link['slug']); ?>/</code>
+                                        <button type="button" onclick="navigator.clipboard.writeText('<?php echo esc_url(home_url('/go/' . $link['slug'] . '/')); ?>')" style="border: none; background: none; cursor: pointer; padding: 2px;" title="Kopieer">📋</button>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($link['keywords'])) : ?>
+                                            <span style="font-size: 12px; color: #16a34a;">✓ <?php echo esc_html($link['keywords']); ?></span>
+                                            <br><span style="font-size: 11px; color: #666;">Max <?php echo intval($link['max'] ?? 1); ?>x per artikel</span>
+                                        <?php else : ?>
+                                            <span style="color: #999;">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><strong style="color: #16a34a;"><?php echo number_format($link['clicks'] ?? 0); ?></strong></td>
+                                    <td>
+                                        <a href="<?php echo esc_url($link['url']); ?>" target="_blank" style="margin-right: 8px;">🔗</a>
+                                        <a href="<?php echo wp_nonce_url(admin_url('tools.php?page=writgo-affiliate-links&delete_aff=' . $index), 'delete_aff'); ?>" onclick="return confirm('Verwijderen?');" style="color: #dc2626;"><?php _e('X', 'writgo-affiliate'); ?></a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Shortcode Help -->
+        <div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 30px;">
+            <h3 style="margin-top: 0;"><?php _e('Shortcode Gebruik', 'writgo-affiliate'); ?></h3>
+            <p><?php _e('Gebruik deze shortcode om affiliate links in je content te plaatsen:', 'writgo-affiliate'); ?></p>
+            <code style="display: block; background: #f1f5f9; padding: 15px; border-radius: 6px; margin: 10px 0;">[affiliate slug="laptop-x"]Bekijk op Bol.com[/affiliate]</code>
+            <code style="display: block; background: #f1f5f9; padding: 15px; border-radius: 6px; margin: 10px 0;">[affiliate slug="laptop-x" button="true"]Bekijk aanbieding[/affiliate]</code>
+        </div>
+    </div>
+    <?php
+}
+
+// Affiliate shortcode
+add_shortcode('affiliate', 'writgo_affiliate_shortcode');
+function writgo_affiliate_shortcode($atts, $content = null) {
+    $atts = shortcode_atts(array(
+        'slug' => '',
+        'button' => false,
+        'class' => '',
+    ), $atts);
+
+    if (!$atts['slug']) {
+        return $content;
+    }
+
+    $url = home_url('/go/' . sanitize_title($atts['slug']) . '/');
+    $text = $content ?: __('Bekijk product', 'writgo-affiliate');
+
+    if ($atts['button']) {
+        return '<a href="' . esc_url($url) . '" class="writgo-aff-button ' . esc_attr($atts['class']) . '" rel="nofollow sponsored" target="_blank">' . esc_html($text) . '</a>';
+    }
+
+    return '<a href="' . esc_url($url) . '" class="writgo-aff-link ' . esc_attr($atts['class']) . '" rel="nofollow sponsored" target="_blank">' . esc_html($text) . '</a>';
+}
+
+// Add button styles
+add_action('wp_head', 'writgo_affiliate_styles');
+function writgo_affiliate_styles() {
+    ?>
+    <style>
+        .writgo-aff-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: #fff !important;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .writgo-aff-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+            color: #fff !important;
+        }
+        .writgo-aff-link {
+            color: #f97316;
+            text-decoration: underline;
+        }
+    </style>
+    <?php
+}
+
+/**
+ * Auto-link affiliate keywords in content
+ */
+add_filter('the_content', 'writgo_auto_affiliate_links', 98);
+function writgo_auto_affiliate_links($content) {
+    if (!is_singular('post') || is_admin()) {
+        return $content;
+    }
+
+    if (!get_theme_mod('writgo_auto_affiliate_enabled', true)) {
+        return $content;
+    }
+
+    $links = get_option('writgo_affiliate_links', array());
+    if (empty($links)) {
+        return $content;
+    }
+
+    // Collect all keywords with their links
+    $keyword_links = array();
+    foreach ($links as $link) {
+        if (empty($link['keywords'])) {
+            continue;
+        }
+
+        $keywords = array_map('trim', explode(',', $link['keywords']));
+        $url = home_url('/go/' . $link['slug'] . '/');
+        $max = intval($link['max'] ?? 1);
+
+        foreach ($keywords as $keyword) {
+            if ($keyword) {
+                $keyword_links[] = array(
+                    'keyword' => $keyword,
+                    'url' => $url,
+                    'max' => $max,
+                    'name' => $link['name']
+                );
+            }
+        }
+    }
+
+    if (empty($keyword_links)) {
+        return $content;
+    }
+
+    // Sort by keyword length (longest first)
+    usort($keyword_links, function($a, $b) {
+        return strlen($b['keyword']) - strlen($a['keyword']);
+    });
+
+    foreach ($keyword_links as $kw_link) {
+        $keyword = preg_quote($kw_link['keyword'], '/');
+        $max = $kw_link['max'];
+        $count = 0;
+
+        $content = preg_replace_callback(
+            '/(?<!["\'>])(\b' . $keyword . '\b)(?![^<]*<\/a>)(?![^<]*>)/i',
+            function($matches) use ($kw_link, &$count, $max) {
+                if ($count >= $max) {
+                    return $matches[0];
+                }
+                $count++;
+                return '<a href="' . esc_url($kw_link['url']) . '" class="writgo-auto-aff-link" rel="nofollow sponsored" target="_blank" title="' . esc_attr($kw_link['name']) . '">' . $matches[0] . '</a>';
+            },
+            $content
+        );
+    }
+
+    return $content;
+}
+
+/**
+ * Auto add nofollow/sponsored to external links
+ */
+add_filter('the_content', 'writgo_external_links_nofollow', 100);
+function writgo_external_links_nofollow($content) {
+    if (!get_theme_mod('writgo_external_nofollow', true)) {
+        return $content;
+    }
+
+    $site_url = parse_url(home_url(), PHP_URL_HOST);
+
+    // Find all links
+    $content = preg_replace_callback(
+        '/<a\s+([^>]*href=["\']([^"\']+)["\'][^>]*)>/i',
+        function($matches) use ($site_url) {
+            $full_tag = $matches[0];
+            $url = $matches[2];
+            $url_host = parse_url($url, PHP_URL_HOST);
+
+            // Skip internal links
+            if (!$url_host || strpos($url_host, $site_url) !== false) {
+                return $full_tag;
+            }
+
+            // Skip if already has rel attribute with nofollow
+            if (preg_match('/rel=["\'][^"\']*nofollow[^"\']*["\']/i', $full_tag)) {
+                return $full_tag;
+            }
+
+            // Add or modify rel attribute
+            if (preg_match('/rel=["\']([^"\']*)["\']/', $full_tag)) {
+                // Add to existing rel
+                $full_tag = preg_replace(
+                    '/rel=["\']([^"\']*)["\']/',
+                    'rel="$1 nofollow sponsored"',
+                    $full_tag
+                );
+            } else {
+                // Add new rel attribute
+                $full_tag = str_replace('<a ', '<a rel="nofollow sponsored" ', $full_tag);
+            }
+
+            // Add target="_blank" if not present
+            if (strpos($full_tag, 'target=') === false) {
+                $full_tag = str_replace('<a ', '<a target="_blank" ', $full_tag);
+            }
+
+            return $full_tag;
+        },
+        $content
+    );
+
+    return $content;
+}
+
+/**
+ * Auto add affiliate disclaimer
+ */
+add_filter('the_content', 'writgo_affiliate_disclaimer', 5);
+function writgo_affiliate_disclaimer($content) {
+    if (!is_singular('post') || is_admin()) {
+        return $content;
+    }
+
+    if (!get_theme_mod('writgo_affiliate_disclaimer', true)) {
+        return $content;
+    }
+
+    $disclaimer_text = get_theme_mod('writgo_disclaimer_text', 'Dit artikel bevat affiliate links. Als je via deze links een product koopt, ontvangen wij een kleine commissie. Dit kost jou niets extra.');
+
+    $disclaimer = '<div class="writgo-affiliate-disclaimer" style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-bottom: 24px; border-radius: 0 8px 8px 0; font-size: 14px; color: #92400e;">
+        <strong>📢 Affiliate Disclosure:</strong> ' . esc_html($disclaimer_text) . '
+    </div>';
+
+    return $disclaimer . $content;
+}
+
+// Add affiliate settings to Customizer
+add_action('customize_register', 'writgo_affiliate_customizer');
+function writgo_affiliate_customizer($wp_customize) {
+    // Affiliate Section
+    $wp_customize->add_section('writgo_affiliate_settings', array(
+        'title' => __('🔗 Affiliate Instellingen', 'writgo-affiliate'),
+        'priority' => 36,
+    ));
+
+    // Enable auto affiliate links
+    $wp_customize->add_setting('writgo_auto_affiliate_enabled', array(
+        'default' => true,
+        'sanitize_callback' => 'wp_validate_boolean',
+    ));
+    $wp_customize->add_control('writgo_auto_affiliate_enabled', array(
+        'label' => __('Automatische affiliate links in content', 'writgo-affiliate'),
+        'description' => __('Keywords worden automatisch gelinkt naar affiliate URLs', 'writgo-affiliate'),
+        'section' => 'writgo_affiliate_settings',
+        'type' => 'checkbox',
+    ));
+
+    // Enable external nofollow
+    $wp_customize->add_setting('writgo_external_nofollow', array(
+        'default' => true,
+        'sanitize_callback' => 'wp_validate_boolean',
+    ));
+    $wp_customize->add_control('writgo_external_nofollow', array(
+        'label' => __('Automatisch nofollow op externe links', 'writgo-affiliate'),
+        'section' => 'writgo_affiliate_settings',
+        'type' => 'checkbox',
+    ));
+
+    // Enable disclaimer
+    $wp_customize->add_setting('writgo_affiliate_disclaimer', array(
+        'default' => true,
+        'sanitize_callback' => 'wp_validate_boolean',
+    ));
+    $wp_customize->add_control('writgo_affiliate_disclaimer', array(
+        'label' => __('Toon affiliate disclaimer', 'writgo-affiliate'),
+        'section' => 'writgo_affiliate_settings',
+        'type' => 'checkbox',
+    ));
+
+    // Disclaimer text
+    $wp_customize->add_setting('writgo_disclaimer_text', array(
+        'default' => 'Dit artikel bevat affiliate links. Als je via deze links een product koopt, ontvangen wij een kleine commissie. Dit kost jou niets extra.',
+        'sanitize_callback' => 'sanitize_textarea_field',
+    ));
+    $wp_customize->add_control('writgo_disclaimer_text', array(
+        'label' => __('Disclaimer tekst', 'writgo-affiliate'),
+        'section' => 'writgo_affiliate_settings',
+        'type' => 'textarea',
+    ));
+}
+
+// Flush rewrite rules on theme activation for affiliate links
+add_action('after_switch_theme', 'writgo_flush_affiliate_rules');
+function writgo_flush_affiliate_rules() {
+    writgo_register_affiliate_routes();
+    flush_rewrite_rules();
+}
