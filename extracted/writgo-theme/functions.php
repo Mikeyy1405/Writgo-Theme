@@ -1734,6 +1734,7 @@ $modules = array(
     '/inc/affiliate-shortcodes.php',
     '/inc/legal-pages.php',
     '/inc/seo.php',
+    '/inc/performance.php',
     '/inc/theme-updater.php',
 );
 
