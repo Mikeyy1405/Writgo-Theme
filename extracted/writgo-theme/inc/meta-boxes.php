@@ -97,6 +97,9 @@ function writgo_seo_options_callback($post) {
         return;
     }
 
+    // Add nonce field for SEO meta box
+    wp_nonce_field('writgo_seo_options', 'writgo_seo_options_nonce');
+
     $seo_title = get_post_meta($post->ID, '_writgo_seo_title', true);
     $seo_description = get_post_meta($post->ID, '_writgo_seo_description', true);
     $focus_keyword = get_post_meta($post->ID, '_writgo_focus_keyword', true);
@@ -1032,86 +1035,99 @@ function writgo_affiliate_options_callback($post) {
  */
 add_action('save_post', 'writgo_save_meta_boxes');
 function writgo_save_meta_boxes($post_id) {
-    // Check nonce
-    if (!isset($_POST['writgo_post_options_nonce']) || 
-        !wp_verify_nonce($_POST['writgo_post_options_nonce'], 'writgo_post_options')) {
-        return;
-    }
-    
     // Check autosave
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
         return;
     }
-    
+
     // Check permissions
     if (!current_user_can('edit_post', $post_id)) {
         return;
     }
-    
-    // Save featured
-    $featured = isset($_POST['writgo_featured']) ? '1' : '';
-    update_post_meta($post_id, '_writgo_featured', $featured);
-    
-    // Save score
-    if (isset($_POST['writgo_score']) && $_POST['writgo_score'] !== '') {
-        $score = floatval($_POST['writgo_score']);
-        $score = max(0, min(10, $score));
-        update_post_meta($post_id, '_writgo_score', $score);
-    } else {
-        delete_post_meta($post_id, '_writgo_score');
-    }
-    
-    // Save SEO options
-    if (isset($_POST['writgo_seo_title'])) {
-        update_post_meta($post_id, '_writgo_seo_title', sanitize_text_field($_POST['writgo_seo_title']));
+
+    // Check post options nonce (for posts)
+    $post_options_valid = isset($_POST['writgo_post_options_nonce']) &&
+        wp_verify_nonce($_POST['writgo_post_options_nonce'], 'writgo_post_options');
+
+    // Check SEO options nonce (for posts and pages)
+    $seo_options_valid = isset($_POST['writgo_seo_options_nonce']) &&
+        wp_verify_nonce($_POST['writgo_seo_options_nonce'], 'writgo_seo_options');
+
+    // If neither nonce is valid, return
+    if (!$post_options_valid && !$seo_options_valid) {
+        return;
     }
 
-    if (isset($_POST['writgo_seo_description'])) {
-        update_post_meta($post_id, '_writgo_seo_description', sanitize_textarea_field($_POST['writgo_seo_description']));
-    }
+    // Save featured (only if post options nonce is valid - posts only)
+    if ($post_options_valid) {
+        $featured = isset($_POST['writgo_featured']) ? '1' : '';
+        update_post_meta($post_id, '_writgo_featured', $featured);
 
-    if (isset($_POST['writgo_focus_keyword'])) {
-        update_post_meta($post_id, '_writgo_focus_keyword', sanitize_text_field($_POST['writgo_focus_keyword']));
-    }
-
-    if (isset($_POST['writgo_robots_index'])) {
-        $robots_index = in_array($_POST['writgo_robots_index'], array('index', 'noindex')) ? $_POST['writgo_robots_index'] : 'index';
-        update_post_meta($post_id, '_writgo_robots_index', $robots_index);
-    }
-
-    if (isset($_POST['writgo_robots_follow'])) {
-        $robots_follow = in_array($_POST['writgo_robots_follow'], array('follow', 'nofollow')) ? $_POST['writgo_robots_follow'] : 'follow';
-        update_post_meta($post_id, '_writgo_robots_follow', $robots_follow);
-    }
-
-    // Save OG Image
-    if (isset($_POST['writgo_og_image'])) {
-        $og_image = intval($_POST['writgo_og_image']);
-        if ($og_image > 0) {
-            update_post_meta($post_id, '_writgo_og_image', $og_image);
+        // Save score
+        if (isset($_POST['writgo_score']) && $_POST['writgo_score'] !== '') {
+            $score = floatval($_POST['writgo_score']);
+            $score = max(0, min(10, $score));
+            update_post_meta($post_id, '_writgo_score', $score);
         } else {
-            delete_post_meta($post_id, '_writgo_og_image');
+            delete_post_meta($post_id, '_writgo_score');
         }
     }
 
-    // Save Sticky CTA options
-    $sticky_enabled = isset($_POST['writgo_sticky_cta']) ? '1' : '';
-    update_post_meta($post_id, '_writgo_sticky_cta', $sticky_enabled);
-    
-    if (isset($_POST['writgo_sticky_title'])) {
-        update_post_meta($post_id, '_writgo_sticky_title', sanitize_text_field($_POST['writgo_sticky_title']));
+    // Save SEO options (if SEO nonce is valid - posts and pages)
+    if ($seo_options_valid) {
+        if (isset($_POST['writgo_seo_title'])) {
+            update_post_meta($post_id, '_writgo_seo_title', sanitize_text_field($_POST['writgo_seo_title']));
+        }
+
+        if (isset($_POST['writgo_seo_description'])) {
+            update_post_meta($post_id, '_writgo_seo_description', sanitize_textarea_field($_POST['writgo_seo_description']));
+        }
+
+        if (isset($_POST['writgo_focus_keyword'])) {
+            update_post_meta($post_id, '_writgo_focus_keyword', sanitize_text_field($_POST['writgo_focus_keyword']));
+        }
+
+        if (isset($_POST['writgo_robots_index'])) {
+            $robots_index = in_array($_POST['writgo_robots_index'], array('index', 'noindex')) ? $_POST['writgo_robots_index'] : 'index';
+            update_post_meta($post_id, '_writgo_robots_index', $robots_index);
+        }
+
+        if (isset($_POST['writgo_robots_follow'])) {
+            $robots_follow = in_array($_POST['writgo_robots_follow'], array('follow', 'nofollow')) ? $_POST['writgo_robots_follow'] : 'follow';
+            update_post_meta($post_id, '_writgo_robots_follow', $robots_follow);
+        }
+
+        // Save OG Image
+        if (isset($_POST['writgo_og_image'])) {
+            $og_image = intval($_POST['writgo_og_image']);
+            if ($og_image > 0) {
+                update_post_meta($post_id, '_writgo_og_image', $og_image);
+            } else {
+                delete_post_meta($post_id, '_writgo_og_image');
+            }
+        }
     }
-    
-    if (isset($_POST['writgo_sticky_price'])) {
-        update_post_meta($post_id, '_writgo_sticky_price', sanitize_text_field($_POST['writgo_sticky_price']));
-    }
-    
-    if (isset($_POST['writgo_sticky_url'])) {
-        update_post_meta($post_id, '_writgo_sticky_url', esc_url_raw($_POST['writgo_sticky_url']));
-    }
-    
-    if (isset($_POST['writgo_sticky_button'])) {
-        update_post_meta($post_id, '_writgo_sticky_button', sanitize_text_field($_POST['writgo_sticky_button']));
+
+    // Save Sticky CTA options (only for posts)
+    if ($post_options_valid) {
+        $sticky_enabled = isset($_POST['writgo_sticky_cta']) ? '1' : '';
+        update_post_meta($post_id, '_writgo_sticky_cta', $sticky_enabled);
+
+        if (isset($_POST['writgo_sticky_title'])) {
+            update_post_meta($post_id, '_writgo_sticky_title', sanitize_text_field($_POST['writgo_sticky_title']));
+        }
+
+        if (isset($_POST['writgo_sticky_price'])) {
+            update_post_meta($post_id, '_writgo_sticky_price', sanitize_text_field($_POST['writgo_sticky_price']));
+        }
+
+        if (isset($_POST['writgo_sticky_url'])) {
+            update_post_meta($post_id, '_writgo_sticky_url', esc_url_raw($_POST['writgo_sticky_url']));
+        }
+
+        if (isset($_POST['writgo_sticky_button'])) {
+            update_post_meta($post_id, '_writgo_sticky_button', sanitize_text_field($_POST['writgo_sticky_button']));
+        }
     }
 }
 
