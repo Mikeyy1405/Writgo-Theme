@@ -1057,3 +1057,463 @@ function writgo_custom_og_image_output() {
         }
     }
 }
+
+/**
+ * =====================================================
+ * WEBSITE SCHEMA (Homepage with SearchAction)
+ * =====================================================
+ */
+add_action('wp_head', 'writgo_website_schema');
+function writgo_website_schema() {
+    if (!is_front_page()) {
+        return;
+    }
+
+    $schema = array(
+        '@context' => 'https://schema.org',
+        '@type' => 'WebSite',
+        'name' => get_bloginfo('name'),
+        'description' => get_bloginfo('description'),
+        'url' => home_url('/'),
+        'potentialAction' => array(
+            '@type' => 'SearchAction',
+            'target' => array(
+                '@type' => 'EntryPoint',
+                'urlTemplate' => home_url('/?s={search_term_string}')
+            ),
+            'query-input' => 'required name=search_term_string'
+        )
+    );
+
+    echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>' . "\n";
+}
+
+/**
+ * =====================================================
+ * HOWTO SCHEMA SHORTCODE
+ * [writgo_howto title="Hoe doe je X"]
+ * <step title="Stap 1">Instructie hier</step>
+ * <step title="Stap 2">Instructie hier</step>
+ * [/writgo_howto]
+ * =====================================================
+ */
+add_shortcode('writgo_howto', 'writgo_howto_shortcode');
+function writgo_howto_shortcode($atts, $content = null) {
+    $atts = shortcode_atts(array(
+        'title' => '',
+        'time' => '',
+    ), $atts);
+
+    if (!$content) {
+        return '';
+    }
+
+    // Parse steps from content
+    $steps = array();
+    preg_match_all('/<step\s+title=["\']([^"\']+)["\']>(.*?)<\/step>/is', $content, $matches, PREG_SET_ORDER);
+
+    if (empty($matches)) {
+        return '';
+    }
+
+    $schema_steps = array();
+    $html = '<div class="writgo-howto">';
+
+    if ($atts['title']) {
+        $html .= '<h3 class="writgo-howto-title">' . esc_html($atts['title']) . '</h3>';
+    }
+
+    $html .= '<ol class="writgo-howto-steps">';
+    $step_num = 1;
+
+    foreach ($matches as $match) {
+        $step_title = esc_html($match[1]);
+        $step_content = wp_kses_post(trim($match[2]));
+
+        $schema_steps[] = array(
+            '@type' => 'HowToStep',
+            'position' => $step_num,
+            'name' => $step_title,
+            'text' => strip_tags($step_content)
+        );
+
+        $html .= '<li class="writgo-howto-step">';
+        $html .= '<strong>' . $step_title . '</strong>';
+        $html .= '<div class="writgo-step-content">' . $step_content . '</div>';
+        $html .= '</li>';
+
+        $step_num++;
+    }
+
+    $html .= '</ol></div>';
+
+    // Add HowTo Schema
+    $schema = array(
+        '@context' => 'https://schema.org',
+        '@type' => 'HowTo',
+        'name' => $atts['title'] ?: get_the_title(),
+        'step' => $schema_steps
+    );
+
+    if ($atts['time']) {
+        $schema['totalTime'] = 'PT' . intval($atts['time']) . 'M';
+    }
+
+    $html .= '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>';
+
+    // Add styles
+    $html .= '<style>
+        .writgo-howto { margin: 2rem 0; padding: 20px; background: #f8fafc; border-radius: 12px; }
+        .writgo-howto-title { margin: 0 0 20px; font-size: 1.25rem; color: #1e293b; }
+        .writgo-howto-steps { margin: 0; padding-left: 0; list-style: none; counter-reset: step; }
+        .writgo-howto-step { position: relative; padding: 15px 15px 15px 60px; margin-bottom: 12px; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .writgo-howto-step::before { counter-increment: step; content: counter(step); position: absolute; left: 15px; top: 15px; width: 32px; height: 32px; background: #f97316; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+        .writgo-howto-step strong { display: block; margin-bottom: 8px; color: #1e293b; }
+        .writgo-step-content { color: #475569; line-height: 1.6; }
+    </style>';
+
+    return $html;
+}
+
+/**
+ * =====================================================
+ * VIDEO SCHEMA (Auto-detect YouTube/Vimeo embeds)
+ * =====================================================
+ */
+add_action('wp_head', 'writgo_video_schema');
+function writgo_video_schema() {
+    if (!is_singular('post')) {
+        return;
+    }
+
+    global $post;
+
+    // Check for YouTube embeds
+    if (preg_match('/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/', $post->post_content, $yt_match) ||
+        preg_match('/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/', $post->post_content, $yt_match) ||
+        preg_match('/youtu\.be\/([a-zA-Z0-9_-]+)/', $post->post_content, $yt_match)) {
+
+        $video_id = $yt_match[1];
+        $custom_description = get_post_meta($post->ID, '_writgo_seo_description', true);
+
+        $schema = array(
+            '@context' => 'https://schema.org',
+            '@type' => 'VideoObject',
+            'name' => get_the_title(),
+            'description' => $custom_description ?: wp_trim_words(strip_tags($post->post_content), 30),
+            'thumbnailUrl' => 'https://img.youtube.com/vi/' . $video_id . '/maxresdefault.jpg',
+            'uploadDate' => get_the_date('c'),
+            'contentUrl' => 'https://www.youtube.com/watch?v=' . $video_id,
+            'embedUrl' => 'https://www.youtube.com/embed/' . $video_id
+        );
+
+        echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>' . "\n";
+    }
+}
+
+/**
+ * =====================================================
+ * ITEMLIST SCHEMA (For list/comparison posts)
+ * =====================================================
+ */
+add_action('wp_head', 'writgo_itemlist_schema');
+function writgo_itemlist_schema() {
+    if (!is_singular('post')) {
+        return;
+    }
+
+    global $post;
+
+    // Check if title contains list indicators
+    $title = strtolower(get_the_title());
+    $is_list = preg_match('/(top\s*\d+|beste|\d+\s*beste|vergelijk|review)/i', $title);
+
+    if (!$is_list) {
+        return;
+    }
+
+    // Extract H2/H3 headings as list items
+    preg_match_all('/<h[23][^>]*>(.*?)<\/h[23]>/i', $post->post_content, $headings);
+
+    if (empty($headings[1]) || count($headings[1]) < 3) {
+        return;
+    }
+
+    $items = array();
+    $position = 1;
+
+    foreach ($headings[1] as $heading) {
+        $heading_text = strip_tags($heading);
+        // Skip common non-item headings
+        if (preg_match('/(conclusie|veelgestelde|faq|koopgids|wat is|waarom|hoe)/i', $heading_text)) {
+            continue;
+        }
+
+        $items[] = array(
+            '@type' => 'ListItem',
+            'position' => $position++,
+            'name' => $heading_text
+        );
+
+        if ($position > 10) break; // Limit to 10 items
+    }
+
+    if (count($items) >= 3) {
+        $schema = array(
+            '@context' => 'https://schema.org',
+            '@type' => 'ItemList',
+            'name' => get_the_title(),
+            'numberOfItems' => count($items),
+            'itemListElement' => $items
+        );
+
+        echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>' . "\n";
+    }
+}
+
+/**
+ * =====================================================
+ * AUTOMATIC INTERNAL LINKING
+ * =====================================================
+ */
+
+// Admin page for internal link keywords
+add_action('admin_menu', 'writgo_internal_links_menu');
+function writgo_internal_links_menu() {
+    add_submenu_page(
+        'tools.php',
+        __('Interne Links', 'writgo-affiliate'),
+        __('Interne Links', 'writgo-affiliate'),
+        'manage_options',
+        'writgo-internal-links',
+        'writgo_internal_links_page'
+    );
+}
+
+// Handle form submissions
+add_action('admin_init', 'writgo_handle_internal_link_actions');
+function writgo_handle_internal_link_actions() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    // Add link rule
+    if (isset($_POST['writgo_add_link']) && wp_verify_nonce($_POST['writgo_link_nonce'], 'writgo_link_action')) {
+        $links = get_option('writgo_internal_links', array());
+        $keyword = sanitize_text_field($_POST['link_keyword']);
+        $url = esc_url_raw($_POST['link_url']);
+        $max = intval($_POST['link_max']) ?: 1;
+
+        if ($keyword && $url) {
+            $links[] = array(
+                'keyword' => $keyword,
+                'url' => $url,
+                'max' => $max,
+                'created' => current_time('mysql')
+            );
+            update_option('writgo_internal_links', $links);
+            add_settings_error('writgo_links', 'link_added', __('Link regel toegevoegd.', 'writgo-affiliate'), 'success');
+        }
+    }
+
+    // Delete link rule
+    if (isset($_GET['delete_link']) && isset($_GET['_wpnonce']) && wp_verify_nonce($_GET['_wpnonce'], 'delete_link')) {
+        $links = get_option('writgo_internal_links', array());
+        $index = intval($_GET['delete_link']);
+        if (isset($links[$index])) {
+            unset($links[$index]);
+            $links = array_values($links);
+            update_option('writgo_internal_links', $links);
+        }
+        wp_redirect(admin_url('tools.php?page=writgo-internal-links&deleted=1'));
+        exit;
+    }
+
+    // Auto-generate from focus keywords
+    if (isset($_POST['writgo_auto_generate']) && wp_verify_nonce($_POST['writgo_link_nonce'], 'writgo_link_action')) {
+        $links = get_option('writgo_internal_links', array());
+        $existing_keywords = array_column($links, 'keyword');
+
+        $posts = get_posts(array(
+            'post_type' => 'post',
+            'post_status' => 'publish',
+            'posts_per_page' => 100,
+            'meta_query' => array(
+                array(
+                    'key' => '_writgo_focus_keyword',
+                    'compare' => '!=',
+                    'value' => ''
+                )
+            )
+        ));
+
+        $added = 0;
+        foreach ($posts as $post) {
+            $keyword = get_post_meta($post->ID, '_writgo_focus_keyword', true);
+            if ($keyword && !in_array(strtolower($keyword), array_map('strtolower', $existing_keywords))) {
+                $links[] = array(
+                    'keyword' => $keyword,
+                    'url' => get_permalink($post->ID),
+                    'max' => 1,
+                    'created' => current_time('mysql')
+                );
+                $existing_keywords[] = $keyword;
+                $added++;
+            }
+        }
+
+        if ($added > 0) {
+            update_option('writgo_internal_links', $links);
+            add_settings_error('writgo_links', 'links_generated', sprintf(__('%d link regels automatisch gegenereerd.', 'writgo-affiliate'), $added), 'success');
+        } else {
+            add_settings_error('writgo_links', 'no_links', __('Geen nieuwe keywords gevonden.', 'writgo-affiliate'), 'info');
+        }
+    }
+}
+
+// Admin page
+function writgo_internal_links_page() {
+    $links = get_option('writgo_internal_links', array());
+    ?>
+    <div class="wrap">
+        <h1><?php _e('Automatische Interne Links', 'writgo-affiliate'); ?></h1>
+        <p><?php _e('Definieer keywords die automatisch gelinkt worden naar specifieke pagina\'s in je content.', 'writgo-affiliate'); ?></p>
+
+        <?php settings_errors('writgo_links'); ?>
+
+        <?php if (isset($_GET['deleted'])) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php _e('Link regel verwijderd.', 'writgo-affiliate'); ?></p></div>
+        <?php endif; ?>
+
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px; margin-top: 20px;">
+            <!-- Add New -->
+            <div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h2 style="margin-top: 0;"><?php _e('Nieuwe Link Regel', 'writgo-affiliate'); ?></h2>
+                <form method="post">
+                    <?php wp_nonce_field('writgo_link_action', 'writgo_link_nonce'); ?>
+
+                    <p>
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;"><?php _e('Keyword', 'writgo-affiliate'); ?></label>
+                        <input type="text" name="link_keyword" placeholder="bijv. beste laptop" style="width: 100%; padding: 8px;" required />
+                    </p>
+
+                    <p>
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;"><?php _e('Link naar URL', 'writgo-affiliate'); ?></label>
+                        <input type="url" name="link_url" placeholder="https://..." style="width: 100%; padding: 8px;" required />
+                    </p>
+
+                    <p>
+                        <label style="display: block; font-weight: 600; margin-bottom: 5px;"><?php _e('Max per artikel', 'writgo-affiliate'); ?></label>
+                        <input type="number" name="link_max" value="1" min="1" max="5" style="width: 80px; padding: 8px;" />
+                        <span style="font-size: 12px; color: #666;"><?php _e('Hoeveel keer mag dit keyword gelinkt worden per artikel?', 'writgo-affiliate'); ?></span>
+                    </p>
+
+                    <p style="display: flex; gap: 10px;">
+                        <button type="submit" name="writgo_add_link" class="button button-primary"><?php _e('Toevoegen', 'writgo-affiliate'); ?></button>
+                        <button type="submit" name="writgo_auto_generate" class="button"><?php _e('Auto-genereer van Focus Keywords', 'writgo-affiliate'); ?></button>
+                    </p>
+                </form>
+            </div>
+
+            <!-- List -->
+            <div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h2 style="margin-top: 0;"><?php _e('Actieve Link Regels', 'writgo-affiliate'); ?> <span style="font-weight: normal; color: #666;">(<?php echo count($links); ?>)</span></h2>
+
+                <?php if (empty($links)) : ?>
+                    <p style="color: #666;"><?php _e('Nog geen link regels. Voeg handmatig toe of genereer automatisch vanuit je focus keywords.', 'writgo-affiliate'); ?></p>
+                <?php else : ?>
+                    <table class="widefat striped">
+                        <thead>
+                            <tr>
+                                <th><?php _e('Keyword', 'writgo-affiliate'); ?></th>
+                                <th><?php _e('URL', 'writgo-affiliate'); ?></th>
+                                <th><?php _e('Max', 'writgo-affiliate'); ?></th>
+                                <th><?php _e('Actie', 'writgo-affiliate'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($links as $index => $link) : ?>
+                                <tr>
+                                    <td><strong><?php echo esc_html($link['keyword']); ?></strong></td>
+                                    <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;"><a href="<?php echo esc_url($link['url']); ?>" target="_blank"><?php echo esc_url($link['url']); ?></a></td>
+                                    <td><?php echo intval($link['max']); ?>x</td>
+                                    <td>
+                                        <a href="<?php echo wp_nonce_url(admin_url('tools.php?page=writgo-internal-links&delete_link=' . $index), 'delete_link'); ?>" onclick="return confirm('Verwijderen?');" style="color: #dc2626;"><?php _e('Verwijderen', 'writgo-affiliate'); ?></a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php
+}
+
+// Apply internal links to content
+add_filter('the_content', 'writgo_auto_internal_links', 99);
+function writgo_auto_internal_links($content) {
+    // Only on single posts
+    if (!is_singular('post') || is_admin()) {
+        return $content;
+    }
+
+    // Check if enabled
+    if (!get_theme_mod('writgo_auto_links_enabled', true)) {
+        return $content;
+    }
+
+    $links = get_option('writgo_internal_links', array());
+    if (empty($links)) {
+        return $content;
+    }
+
+    global $post;
+    $current_url = get_permalink($post->ID);
+
+    // Sort by keyword length (longest first to avoid partial matches)
+    usort($links, function($a, $b) {
+        return strlen($b['keyword']) - strlen($a['keyword']);
+    });
+
+    foreach ($links as $link) {
+        // Skip if linking to current page
+        if (trailingslashit($link['url']) === trailingslashit($current_url)) {
+            continue;
+        }
+
+        $keyword = preg_quote($link['keyword'], '/');
+        $max = intval($link['max']) ?: 1;
+        $count = 0;
+
+        // Replace keyword with link (only in text, not in existing links/tags)
+        $content = preg_replace_callback(
+            '/(?<!["\'>])(\b' . $keyword . '\b)(?![^<]*<\/a>)(?![^<]*>)/i',
+            function($matches) use ($link, &$count, $max) {
+                if ($count >= $max) {
+                    return $matches[0];
+                }
+                $count++;
+                return '<a href="' . esc_url($link['url']) . '" class="writgo-auto-link">' . $matches[0] . '</a>';
+            },
+            $content
+        );
+    }
+
+    return $content;
+}
+
+// Add toggle in Customizer
+add_action('customize_register', 'writgo_internal_links_customizer');
+function writgo_internal_links_customizer($wp_customize) {
+    $wp_customize->add_setting('writgo_auto_links_enabled', array(
+        'default' => true,
+        'sanitize_callback' => 'wp_validate_boolean',
+    ));
+    $wp_customize->add_control('writgo_auto_links_enabled', array(
+        'label' => __('Automatische interne links inschakelen', 'writgo-affiliate'),
+        'section' => 'writgo_seo_settings',
+        'type' => 'checkbox',
+    ));
+}
