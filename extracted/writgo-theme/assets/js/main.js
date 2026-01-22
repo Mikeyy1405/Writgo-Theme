@@ -13,22 +13,78 @@
     function initMobileMenu() {
         const menuToggle = document.querySelector('.wa-menu-toggle');
         const nav = document.querySelector('.wa-nav');
-        
+        const body = document.body;
+
         if (!menuToggle || !nav) return;
-        
-        menuToggle.addEventListener('click', () => {
-            const isExpanded = menuToggle.getAttribute('aria-expanded') === 'true';
-            menuToggle.setAttribute('aria-expanded', !isExpanded);
-            nav.classList.toggle('active');
-            
-            // Update icon
+
+        function openMenu() {
+            menuToggle.setAttribute('aria-expanded', 'true');
+            nav.classList.add('active');
+            body.style.overflow = 'hidden';
+
+            // Update icon to X
             const icon = menuToggle.querySelector('svg');
             if (icon) {
-                if (nav.classList.contains('active')) {
-                    icon.innerHTML = '<path d="M18 6L6 18M6 6l12 12"/>';
-                } else {
-                    icon.innerHTML = '<path d="M3 12h18M3 6h18M3 18h18"/>';
+                icon.innerHTML = '<path d="M18 6L6 18M6 6l12 12"/>';
+            }
+        }
+
+        function closeMenu() {
+            menuToggle.setAttribute('aria-expanded', 'false');
+            nav.classList.remove('active');
+            body.style.overflow = '';
+
+            // Update icon to hamburger
+            const icon = menuToggle.querySelector('svg');
+            if (icon) {
+                icon.innerHTML = '<path d="M3 12h18M3 6h18M3 18h18"/>';
+            }
+        }
+
+        function toggleMenu() {
+            if (nav.classList.contains('active')) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
+        }
+
+        // Toggle on button click
+        menuToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMenu();
+        });
+
+        // Close menu when clicking a link
+        nav.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 768) {
+                    closeMenu();
                 }
+            });
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (nav.classList.contains('active') &&
+                !nav.contains(e.target) &&
+                !menuToggle.contains(e.target)) {
+                closeMenu();
+            }
+        });
+
+        // Close menu on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && nav.classList.contains('active')) {
+                closeMenu();
+                menuToggle.focus();
+            }
+        });
+
+        // Close menu on window resize to desktop
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768 && nav.classList.contains('active')) {
+                closeMenu();
             }
         });
     }

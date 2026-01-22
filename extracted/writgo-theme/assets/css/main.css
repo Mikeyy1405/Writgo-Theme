@@ -216,12 +216,80 @@ input:focus-visible {
     display: none;
 }
 
+/* Mobile Navigation - Show when active */
+.wa-nav.active {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--wa-white);
+    padding: var(--wa-space-6);
+    z-index: 999;
+    overflow-y: auto;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.wa-nav.active ul {
+    flex-direction: column;
+    gap: var(--wa-space-2);
+    width: 100%;
+}
+
+.wa-nav.active a,
+.wa-nav.active .menu-item a {
+    display: block;
+    padding: var(--wa-space-4) var(--wa-space-5);
+    font-size: 1.125rem;
+    border-radius: var(--wa-radius-lg);
+    background: var(--wa-bg-light);
+}
+
+.wa-nav.active a:hover,
+.wa-nav.active .menu-item a:hover {
+    background: var(--wa-primary);
+    color: var(--wa-white);
+}
+
 @media (min-width: 768px) {
     .wa-nav {
         display: flex;
         align-items: center;
         gap: var(--wa-space-2);
         flex-shrink: 0;
+    }
+
+    .wa-nav.active {
+        position: static;
+        flex-direction: row;
+        padding: 0;
+        background: none;
+        animation: none;
+    }
+
+    .wa-nav.active ul {
+        flex-direction: row;
+    }
+
+    .wa-nav.active a,
+    .wa-nav.active .menu-item a {
+        display: inline-block;
+        padding: 0.625rem 1rem;
+        font-size: 0.9375rem;
+        background: none;
     }
 }
 
