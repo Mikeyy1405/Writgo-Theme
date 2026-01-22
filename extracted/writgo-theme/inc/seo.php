@@ -2042,3 +2042,382 @@ function writgo_flush_affiliate_rules() {
     writgo_register_affiliate_routes();
     flush_rewrite_rules();
 }
+
+/**
+ * =====================================================
+ * COMPARISON TABLE SHORTCODE
+ * [writgo_compare]
+ * <product name="Product 1" price="€99" rating="8.5" url="https://..." image="url">
+ *   <pro>Voordeel 1</pro>
+ *   <con>Nadeel 1</con>
+ * </product>
+ * [/writgo_compare]
+ * =====================================================
+ */
+add_shortcode('writgo_compare', 'writgo_compare_shortcode');
+function writgo_compare_shortcode($atts, $content = null) {
+    $atts = shortcode_atts(array(
+        'title' => '',
+        'columns' => 'auto',
+    ), $atts);
+
+    if (!$content) {
+        return '';
+    }
+
+    // Parse products from content
+    preg_match_all('/<product\s+([^>]+)>(.*?)<\/product>/is', $content, $products, PREG_SET_ORDER);
+
+    if (empty($products)) {
+        return '';
+    }
+
+    $html = '<div class="writgo-compare-table">';
+
+    if ($atts['title']) {
+        $html .= '<h3 class="writgo-compare-title">' . esc_html($atts['title']) . '</h3>';
+    }
+
+    $html .= '<div class="writgo-compare-grid" style="--cols: ' . (count($products) > 4 ? 4 : count($products)) . ';">';
+
+    foreach ($products as $index => $product) {
+        // Parse attributes
+        $attrs = array();
+        preg_match_all('/(\w+)=["\']([^"\']+)["\']/', $product[1], $attr_matches, PREG_SET_ORDER);
+        foreach ($attr_matches as $am) {
+            $attrs[strtolower($am[1])] = $am[2];
+        }
+
+        $name = isset($attrs['name']) ? esc_html($attrs['name']) : 'Product ' . ($index + 1);
+        $price = isset($attrs['price']) ? esc_html($attrs['price']) : '';
+        $rating = isset($attrs['rating']) ? floatval($attrs['rating']) : 0;
+        $url = isset($attrs['url']) ? esc_url($attrs['url']) : '';
+        $image = isset($attrs['image']) ? esc_url($attrs['image']) : '';
+        $badge = isset($attrs['badge']) ? esc_html($attrs['badge']) : '';
+
+        // Parse pros/cons
+        $pros = array();
+        $cons = array();
+        preg_match_all('/<pro>(.*?)<\/pro>/is', $product[2], $pro_matches);
+        preg_match_all('/<con>(.*?)<\/con>/is', $product[2], $con_matches);
+        if (!empty($pro_matches[1])) $pros = $pro_matches[1];
+        if (!empty($con_matches[1])) $cons = $con_matches[1];
+
+        $html .= '<div class="writgo-compare-item' . ($index === 0 ? ' featured' : '') . '">';
+
+        if ($badge) {
+            $html .= '<div class="writgo-compare-badge">' . $badge . '</div>';
+        } elseif ($index === 0) {
+            $html .= '<div class="writgo-compare-badge">' . __('Beste Keuze', 'writgo-affiliate') . '</div>';
+        }
+
+        if ($image) {
+            $html .= '<div class="writgo-compare-image"><img src="' . $image . '" alt="' . $name . '" loading="lazy"></div>';
+        }
+
+        $html .= '<h4 class="writgo-compare-name">' . $name . '</h4>';
+
+        if ($rating) {
+            $html .= '<div class="writgo-compare-rating">';
+            $html .= '<span class="rating-score">' . number_format($rating, 1) . '</span>';
+            $html .= '<span class="rating-stars">';
+            $full_stars = floor($rating / 2);
+            for ($i = 0; $i < 5; $i++) {
+                $html .= $i < $full_stars ? '★' : '☆';
+            }
+            $html .= '</span></div>';
+        }
+
+        if ($price) {
+            $html .= '<div class="writgo-compare-price">' . $price . '</div>';
+        }
+
+        if (!empty($pros) || !empty($cons)) {
+            $html .= '<div class="writgo-compare-proscons">';
+            if (!empty($pros)) {
+                $html .= '<div class="compare-pros">';
+                foreach (array_slice($pros, 0, 3) as $pro) {
+                    $html .= '<div class="pro-item">✓ ' . wp_kses_post(trim($pro)) . '</div>';
+                }
+                $html .= '</div>';
+            }
+            if (!empty($cons)) {
+                $html .= '<div class="compare-cons">';
+                foreach (array_slice($cons, 0, 2) as $con) {
+                    $html .= '<div class="con-item">✗ ' . wp_kses_post(trim($con)) . '</div>';
+                }
+                $html .= '</div>';
+            }
+            $html .= '</div>';
+        }
+
+        if ($url) {
+            $html .= '<a href="' . $url . '" class="writgo-compare-button" rel="nofollow sponsored" target="_blank">' . __('Bekijk aanbieding', 'writgo-affiliate') . '</a>';
+        }
+
+        $html .= '</div>';
+    }
+
+    $html .= '</div></div>';
+
+    // Add styles
+    $html .= '<style>
+        .writgo-compare-table { margin: 2rem 0; }
+        .writgo-compare-title { text-align: center; margin-bottom: 1.5rem; font-size: 1.5rem; color: #1e293b; }
+        .writgo-compare-grid { display: grid; grid-template-columns: repeat(var(--cols, 3), 1fr); gap: 20px; }
+        @media (max-width: 768px) { .writgo-compare-grid { grid-template-columns: 1fr; } }
+        .writgo-compare-item { background: #fff; border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; text-align: center; position: relative; transition: all 0.3s; }
+        .writgo-compare-item:hover { border-color: #f97316; box-shadow: 0 8px 30px rgba(249,115,22,0.15); }
+        .writgo-compare-item.featured { border-color: #f97316; }
+        .writgo-compare-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; padding: 4px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .writgo-compare-image { margin: 10px 0 15px; }
+        .writgo-compare-image img { max-width: 150px; height: auto; border-radius: 8px; }
+        .writgo-compare-name { margin: 0 0 10px; font-size: 1.1rem; color: #1e293b; }
+        .writgo-compare-rating { margin: 10px 0; }
+        .writgo-compare-rating .rating-score { background: #f97316; color: #fff; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 14px; margin-right: 8px; }
+        .writgo-compare-rating .rating-stars { color: #f59e0b; font-size: 14px; }
+        .writgo-compare-price { font-size: 1.5rem; font-weight: 700; color: #16a34a; margin: 15px 0; }
+        .writgo-compare-proscons { text-align: left; margin: 15px 0; font-size: 13px; }
+        .writgo-compare-proscons .pro-item { color: #16a34a; margin: 4px 0; }
+        .writgo-compare-proscons .con-item { color: #dc2626; margin: 4px 0; }
+        .writgo-compare-button { display: block; padding: 12px 20px; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff !important; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 15px; transition: all 0.2s; }
+        .writgo-compare-button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(249,115,22,0.4); }
+    </style>';
+
+    return $html;
+}
+
+/**
+ * =====================================================
+ * PROS/CONS BOX SHORTCODE
+ * [writgo_proscons title="Product Review"]
+ * <pro>Voordeel 1</pro>
+ * <pro>Voordeel 2</pro>
+ * <con>Nadeel 1</con>
+ * [/writgo_proscons]
+ * =====================================================
+ */
+add_shortcode('writgo_proscons', 'writgo_proscons_shortcode');
+function writgo_proscons_shortcode($atts, $content = null) {
+    $atts = shortcode_atts(array(
+        'title' => '',
+        'pros_title' => __('Voordelen', 'writgo-affiliate'),
+        'cons_title' => __('Nadelen', 'writgo-affiliate'),
+    ), $atts);
+
+    if (!$content) {
+        return '';
+    }
+
+    // Parse pros and cons
+    $pros = array();
+    $cons = array();
+    preg_match_all('/<pro>(.*?)<\/pro>/is', $content, $pro_matches);
+    preg_match_all('/<con>(.*?)<\/con>/is', $content, $con_matches);
+    if (!empty($pro_matches[1])) $pros = $pro_matches[1];
+    if (!empty($con_matches[1])) $cons = $con_matches[1];
+
+    if (empty($pros) && empty($cons)) {
+        return '';
+    }
+
+    $html = '<div class="writgo-proscons-box">';
+
+    if ($atts['title']) {
+        $html .= '<div class="writgo-proscons-header">' . esc_html($atts['title']) . '</div>';
+    }
+
+    $html .= '<div class="writgo-proscons-content">';
+
+    // Pros column
+    $html .= '<div class="writgo-pros-column">';
+    $html .= '<div class="column-header pros-header"><span class="icon">👍</span> ' . esc_html($atts['pros_title']) . '</div>';
+    $html .= '<ul class="pros-list">';
+    foreach ($pros as $pro) {
+        $html .= '<li><span class="check">✓</span> ' . wp_kses_post(trim($pro)) . '</li>';
+    }
+    $html .= '</ul></div>';
+
+    // Cons column
+    $html .= '<div class="writgo-cons-column">';
+    $html .= '<div class="column-header cons-header"><span class="icon">👎</span> ' . esc_html($atts['cons_title']) . '</div>';
+    $html .= '<ul class="cons-list">';
+    foreach ($cons as $con) {
+        $html .= '<li><span class="cross">✗</span> ' . wp_kses_post(trim($con)) . '</li>';
+    }
+    $html .= '</ul></div>';
+
+    $html .= '</div></div>';
+
+    // Add styles
+    $html .= '<style>
+        .writgo-proscons-box { margin: 2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; background: #fff; }
+        .writgo-proscons-header { background: #1e293b; color: #fff; padding: 15px 20px; font-weight: 600; font-size: 1.1rem; }
+        .writgo-proscons-content { display: grid; grid-template-columns: 1fr 1fr; }
+        @media (max-width: 600px) { .writgo-proscons-content { grid-template-columns: 1fr; } }
+        .writgo-pros-column, .writgo-cons-column { padding: 0; }
+        .column-header { padding: 12px 20px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .column-header .icon { font-size: 1.2rem; }
+        .pros-header { background: #dcfce7; color: #166534; }
+        .cons-header { background: #fee2e2; color: #991b1b; }
+        .pros-list, .cons-list { list-style: none; margin: 0; padding: 15px 20px; }
+        .pros-list li, .cons-list li { padding: 8px 0; display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid #f1f5f9; }
+        .pros-list li:last-child, .cons-list li:last-child { border-bottom: none; }
+        .pros-list .check { color: #16a34a; font-weight: 700; flex-shrink: 0; }
+        .cons-list .cross { color: #dc2626; font-weight: 700; flex-shrink: 0; }
+    </style>';
+
+    return $html;
+}
+
+/**
+ * =====================================================
+ * PRODUCT BOX SHORTCODE
+ * [writgo_product name="Product Name" price="€99" rating="8.5"
+ *    image="url" url="affiliate-url" badge="Aanrader"]
+ * Product beschrijving hier...
+ * [/writgo_product]
+ * =====================================================
+ */
+add_shortcode('writgo_product', 'writgo_product_shortcode');
+function writgo_product_shortcode($atts, $content = null) {
+    $atts = shortcode_atts(array(
+        'name' => '',
+        'price' => '',
+        'old_price' => '',
+        'rating' => '',
+        'image' => '',
+        'url' => '',
+        'button' => __('Bekijk aanbieding', 'writgo-affiliate'),
+        'badge' => '',
+        'store' => '',
+    ), $atts);
+
+    $html = '<div class="writgo-product-box">';
+
+    // Badge
+    if ($atts['badge']) {
+        $html .= '<div class="product-badge">' . esc_html($atts['badge']) . '</div>';
+    }
+
+    $html .= '<div class="product-inner">';
+
+    // Image
+    if ($atts['image']) {
+        $html .= '<div class="product-image">';
+        $html .= '<img src="' . esc_url($atts['image']) . '" alt="' . esc_attr($atts['name']) . '" loading="lazy">';
+        $html .= '</div>';
+    }
+
+    // Content
+    $html .= '<div class="product-content">';
+
+    // Name
+    if ($atts['name']) {
+        $html .= '<h4 class="product-name">' . esc_html($atts['name']) . '</h4>';
+    }
+
+    // Rating
+    if ($atts['rating']) {
+        $rating = floatval($atts['rating']);
+        $html .= '<div class="product-rating">';
+        $html .= '<span class="rating-value">' . number_format($rating, 1) . '/10</span>';
+        $html .= '<span class="rating-bar"><span class="rating-fill" style="width: ' . ($rating * 10) . '%;"></span></span>';
+        $html .= '</div>';
+    }
+
+    // Description
+    if ($content) {
+        $html .= '<div class="product-description">' . wp_kses_post(trim($content)) . '</div>';
+    }
+
+    $html .= '</div>'; // end product-content
+
+    // Sidebar (price & button)
+    $html .= '<div class="product-sidebar">';
+
+    if ($atts['price']) {
+        $html .= '<div class="product-price">';
+        if ($atts['old_price']) {
+            $html .= '<span class="old-price">' . esc_html($atts['old_price']) . '</span>';
+        }
+        $html .= '<span class="current-price">' . esc_html($atts['price']) . '</span>';
+        $html .= '</div>';
+    }
+
+    if ($atts['store']) {
+        $html .= '<div class="product-store">' . esc_html($atts['store']) . '</div>';
+    }
+
+    if ($atts['url']) {
+        $html .= '<a href="' . esc_url($atts['url']) . '" class="product-button" rel="nofollow sponsored" target="_blank">' . esc_html($atts['button']) . ' →</a>';
+    }
+
+    $html .= '</div>'; // end product-sidebar
+    $html .= '</div>'; // end product-inner
+    $html .= '</div>'; // end writgo-product-box
+
+    // Add styles
+    $html .= '<style>
+        .writgo-product-box { position: relative; margin: 2rem 0; background: #fff; border: 2px solid #e5e7eb; border-radius: 12px; overflow: hidden; transition: all 0.3s; }
+        .writgo-product-box:hover { border-color: #f97316; box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+        .product-badge { position: absolute; top: 15px; left: -35px; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; padding: 6px 40px; font-size: 12px; font-weight: 600; transform: rotate(-45deg); z-index: 1; }
+        .product-inner { display: grid; grid-template-columns: 180px 1fr 200px; gap: 20px; padding: 25px; }
+        @media (max-width: 768px) { .product-inner { grid-template-columns: 1fr; text-align: center; } }
+        .product-image { display: flex; align-items: center; justify-content: center; }
+        .product-image img { max-width: 150px; max-height: 150px; object-fit: contain; border-radius: 8px; }
+        .product-content { display: flex; flex-direction: column; justify-content: center; }
+        .product-name { margin: 0 0 10px; font-size: 1.25rem; color: #1e293b; }
+        .product-rating { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .product-rating .rating-value { background: #f97316; color: #fff; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 14px; }
+        .product-rating .rating-bar { flex: 1; max-width: 150px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+        .product-rating .rating-fill { height: 100%; background: linear-gradient(90deg, #f97316, #ea580c); border-radius: 4px; }
+        .product-description { color: #475569; line-height: 1.6; font-size: 14px; }
+        .product-sidebar { display: flex; flex-direction: column; justify-content: center; align-items: center; padding-left: 20px; border-left: 1px solid #e5e7eb; }
+        @media (max-width: 768px) { .product-sidebar { border-left: none; border-top: 1px solid #e5e7eb; padding: 20px 0 0; } }
+        .product-price { margin-bottom: 10px; text-align: center; }
+        .product-price .old-price { text-decoration: line-through; color: #94a3b8; font-size: 14px; display: block; }
+        .product-price .current-price { font-size: 1.75rem; font-weight: 700; color: #16a34a; }
+        .product-store { font-size: 12px; color: #64748b; margin-bottom: 10px; }
+        .product-button { display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff !important; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.2s; white-space: nowrap; }
+        .product-button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(249,115,22,0.4); }
+    </style>';
+
+    return $html;
+}
+
+/**
+ * =====================================================
+ * STAR RATING SHORTCODE (Simple inline rating)
+ * [writgo_rating score="8.5" max="10"]
+ * =====================================================
+ */
+add_shortcode('writgo_rating', 'writgo_rating_shortcode');
+function writgo_rating_shortcode($atts) {
+    $atts = shortcode_atts(array(
+        'score' => '0',
+        'max' => '10',
+        'label' => '',
+    ), $atts);
+
+    $score = floatval($atts['score']);
+    $max = floatval($atts['max']);
+    $percentage = ($score / $max) * 100;
+
+    $html = '<span class="writgo-rating-inline">';
+    if ($atts['label']) {
+        $html .= '<span class="rating-label">' . esc_html($atts['label']) . ': </span>';
+    }
+    $html .= '<span class="rating-score" style="background: hsl(' . ($percentage * 1.2) . ', 70%, 45%);">' . number_format($score, 1) . '</span>';
+    $html .= '<span class="rating-max">/' . number_format($max, 0) . '</span>';
+    $html .= '</span>';
+
+    $html .= '<style>
+        .writgo-rating-inline { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+        .writgo-rating-inline .rating-label { color: #64748b; font-weight: normal; }
+        .writgo-rating-inline .rating-score { color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 14px; }
+        .writgo-rating-inline .rating-max { color: #94a3b8; font-size: 12px; }
+    </style>';
+
+    return $html;
+}

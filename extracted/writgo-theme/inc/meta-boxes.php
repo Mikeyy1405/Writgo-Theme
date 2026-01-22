@@ -322,6 +322,81 @@ function writgo_seo_options_callback($post) {
                         <span class="status" id="kw-url-status">?</span>
                         <span>Keyword in URL (slug)</span>
                     </div>
+                    <div class="writgo-keyword-item">
+                        <span class="status" id="kw-content-status">?</span>
+                        <span>Keyword in eerste alinea</span>
+                    </div>
+                    <div class="writgo-keyword-item">
+                        <span class="status" id="kw-headings-status">?</span>
+                        <span>Keyword in subkoppen (H2/H3)</span>
+                    </div>
+                    <div class="writgo-keyword-item">
+                        <span class="status" id="kw-density-status">?</span>
+                        <span id="kw-density-text">Keyword density: -</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Analysis -->
+        <div class="writgo-seo-section">
+            <div class="writgo-content-analysis-box" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                <h4 style="margin: 0 0 15px; font-size: 14px; color: #1e293b; display: flex; align-items: center; gap: 8px;"><span>📊</span> Content Analyse</h4>
+
+                <!-- Content Stats -->
+                <div class="writgo-content-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+                    <div class="stat-box" style="background: #f8fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                        <div id="stat-word-count" style="font-size: 24px; font-weight: 700; color: #1e293b;">0</div>
+                        <div style="font-size: 11px; color: #64748b;">Woorden</div>
+                    </div>
+                    <div class="stat-box" style="background: #f8fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                        <div id="stat-char-count" style="font-size: 24px; font-weight: 700; color: #1e293b;">0</div>
+                        <div style="font-size: 11px; color: #64748b;">Tekens</div>
+                    </div>
+                    <div class="stat-box" style="background: #f8fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                        <div id="stat-sentence-count" style="font-size: 24px; font-weight: 700; color: #1e293b;">0</div>
+                        <div style="font-size: 11px; color: #64748b;">Zinnen</div>
+                    </div>
+                    <div class="stat-box" style="background: #f8fafc; padding: 12px; border-radius: 8px; text-align: center;">
+                        <div id="stat-paragraph-count" style="font-size: 24px; font-weight: 700; color: #1e293b;">0</div>
+                        <div style="font-size: 11px; color: #64748b;">Paragrafen</div>
+                    </div>
+                </div>
+
+                <!-- Readability Score -->
+                <div class="writgo-readability" style="margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-weight: 600; font-size: 13px; color: #334155;">Leesbaarheid (Flesch-Douma)</span>
+                        <span id="readability-label" style="font-size: 12px; padding: 4px 10px; border-radius: 12px; background: #f1f5f9; color: #64748b;">Analyseren...</span>
+                    </div>
+                    <div style="background: #e5e7eb; border-radius: 8px; height: 12px; overflow: hidden;">
+                        <div id="readability-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #dc2626, #ca8a04, #16a34a); transition: width 0.3s; border-radius: 8px;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; color: #94a3b8;">
+                        <span>Moeilijk (0)</span>
+                        <span>Gemiddeld (50)</span>
+                        <span>Makkelijk (100)</span>
+                    </div>
+                </div>
+
+                <!-- Content Recommendations -->
+                <div class="writgo-content-checks">
+                    <div class="writgo-keyword-item">
+                        <span class="status" id="check-length-status">?</span>
+                        <span id="check-length-text">Content lengte: -</span>
+                    </div>
+                    <div class="writgo-keyword-item">
+                        <span class="status" id="check-images-status">?</span>
+                        <span id="check-images-text">Afbeeldingen: -</span>
+                    </div>
+                    <div class="writgo-keyword-item">
+                        <span class="status" id="check-headings-status">?</span>
+                        <span id="check-headings-text">Subkoppen (H2/H3): -</span>
+                    </div>
+                    <div class="writgo-keyword-item">
+                        <span class="status" id="check-links-status">?</span>
+                        <span id="check-links-text">Interne/externe links: -</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -433,6 +508,73 @@ function writgo_seo_options_callback($post) {
         var siteName = '<?php echo esc_js($site_name); ?>';
         var postSlug = '<?php echo esc_js($post->post_name); ?>';
 
+        // Get content from editor
+        function getEditorContent() {
+            if (typeof tinymce !== 'undefined' && tinymce.get('content')) {
+                return tinymce.get('content').getContent({ format: 'raw' });
+            }
+            var contentArea = document.getElementById('content');
+            return contentArea ? contentArea.value : '';
+        }
+
+        function getPlainText(html) {
+            var tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            return tmp.textContent || tmp.innerText || '';
+        }
+
+        function countWords(text) {
+            return text.trim().split(/\s+/).filter(function(w) { return w.length > 0; }).length;
+        }
+
+        function countSentences(text) {
+            var matches = text.match(/[.!?]+/g);
+            return matches ? matches.length : 0;
+        }
+
+        function countSyllables(word) {
+            word = word.toLowerCase();
+            if (word.length <= 3) return 1;
+            // Dutch syllable estimation
+            word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
+            word = word.replace(/^y/, '');
+            var syl = word.match(/[aeiouy]{1,2}/g);
+            return syl ? syl.length : 1;
+        }
+
+        function calculateReadability(text) {
+            // Flesch-Douma formula for Dutch
+            // 206.84 - 0.77 * (words/sentences) - 93 * (syllables/words)
+            var plainText = getPlainText(text);
+            var words = plainText.trim().split(/\s+/).filter(function(w) { return w.length > 0; });
+            var wordCount = words.length;
+            if (wordCount < 10) return -1;
+
+            var sentenceCount = countSentences(plainText);
+            if (sentenceCount < 1) sentenceCount = 1;
+
+            var syllableCount = 0;
+            words.forEach(function(word) {
+                syllableCount += countSyllables(word.replace(/[^a-zA-Z]/g, ''));
+            });
+
+            var avgSentenceLength = wordCount / sentenceCount;
+            var avgSyllablesPerWord = syllableCount / wordCount;
+
+            // Flesch-Douma (Dutch adaptation)
+            var score = 206.84 - (0.77 * avgSentenceLength) - (93 * avgSyllablesPerWord);
+            return Math.max(0, Math.min(100, score));
+        }
+
+        function getReadabilityLabel(score) {
+            if (score < 0) return { text: 'Te weinig tekst', color: '#94a3b8', bg: '#f1f5f9' };
+            if (score >= 80) return { text: 'Zeer makkelijk', color: '#16a34a', bg: '#dcfce7' };
+            if (score >= 60) return { text: 'Makkelijk', color: '#22c55e', bg: '#dcfce7' };
+            if (score >= 40) return { text: 'Gemiddeld', color: '#ca8a04', bg: '#fef3c7' };
+            if (score >= 20) return { text: 'Moeilijk', color: '#ea580c', bg: '#ffedd5' };
+            return { text: 'Zeer moeilijk', color: '#dc2626', bg: '#fee2e2' };
+        }
+
         function updateTitleCount() {
             var text = titleInput.value || titleInput.getAttribute('data-default');
             var len = text.length;
@@ -449,8 +591,115 @@ function writgo_seo_options_callback($post) {
             previewDesc.textContent = text;
         }
 
+        function analyzeContent() {
+            var content = getEditorContent();
+            var plainText = getPlainText(content);
+            var words = plainText.trim().split(/\s+/).filter(function(w) { return w.length > 0; });
+            var wordCount = words.length;
+
+            // Update stats
+            document.getElementById('stat-word-count').textContent = wordCount.toLocaleString();
+            document.getElementById('stat-char-count').textContent = plainText.length.toLocaleString();
+            document.getElementById('stat-sentence-count').textContent = countSentences(plainText);
+
+            // Count paragraphs (p tags or double line breaks)
+            var paragraphs = content.match(/<p[^>]*>/gi) || [];
+            document.getElementById('stat-paragraph-count').textContent = Math.max(1, paragraphs.length);
+
+            // Readability score
+            var readabilityScore = calculateReadability(content);
+            var readabilityLabel = getReadabilityLabel(readabilityScore);
+            document.getElementById('readability-bar').style.width = (readabilityScore >= 0 ? readabilityScore : 0) + '%';
+            var labelEl = document.getElementById('readability-label');
+            labelEl.textContent = readabilityLabel.text + (readabilityScore >= 0 ? ' (' + Math.round(readabilityScore) + ')' : '');
+            labelEl.style.background = readabilityLabel.bg;
+            labelEl.style.color = readabilityLabel.color;
+
+            // Content length check
+            var lengthStatus = document.getElementById('check-length-status');
+            var lengthText = document.getElementById('check-length-text');
+            if (wordCount >= 1500) {
+                lengthStatus.className = 'status good';
+                lengthStatus.textContent = '✓';
+                lengthText.textContent = 'Content lengte: ' + wordCount + ' woorden (uitstekend!)';
+            } else if (wordCount >= 800) {
+                lengthStatus.className = 'status good';
+                lengthStatus.textContent = '✓';
+                lengthText.textContent = 'Content lengte: ' + wordCount + ' woorden (goed)';
+            } else if (wordCount >= 300) {
+                lengthStatus.className = 'status warning';
+                lengthStatus.textContent = '!';
+                lengthText.textContent = 'Content lengte: ' + wordCount + ' woorden (minimaal)';
+            } else {
+                lengthStatus.className = 'status bad';
+                lengthStatus.textContent = '✗';
+                lengthText.textContent = 'Content lengte: ' + wordCount + ' woorden (te kort)';
+            }
+
+            // Check images
+            var images = content.match(/<img[^>]*>/gi) || [];
+            var imageCount = images.length;
+            var imagesStatus = document.getElementById('check-images-status');
+            var imagesText = document.getElementById('check-images-text');
+            if (imageCount >= 2) {
+                imagesStatus.className = 'status good';
+                imagesStatus.textContent = '✓';
+                imagesText.textContent = 'Afbeeldingen: ' + imageCount + ' gevonden';
+            } else if (imageCount >= 1) {
+                imagesStatus.className = 'status warning';
+                imagesStatus.textContent = '!';
+                imagesText.textContent = 'Afbeeldingen: ' + imageCount + ' (voeg er meer toe)';
+            } else {
+                imagesStatus.className = 'status bad';
+                imagesStatus.textContent = '✗';
+                imagesText.textContent = 'Afbeeldingen: geen gevonden';
+            }
+
+            // Check headings
+            var h2h3 = content.match(/<h[23][^>]*>/gi) || [];
+            var headingCount = h2h3.length;
+            var headingsStatus = document.getElementById('check-headings-status');
+            var headingsText = document.getElementById('check-headings-text');
+            if (headingCount >= 3) {
+                headingsStatus.className = 'status good';
+                headingsStatus.textContent = '✓';
+                headingsText.textContent = 'Subkoppen: ' + headingCount + ' H2/H3 tags';
+            } else if (headingCount >= 1) {
+                headingsStatus.className = 'status warning';
+                headingsStatus.textContent = '!';
+                headingsText.textContent = 'Subkoppen: ' + headingCount + ' (voeg er meer toe)';
+            } else {
+                headingsStatus.className = 'status bad';
+                headingsStatus.textContent = '✗';
+                headingsText.textContent = 'Subkoppen: geen H2/H3 gevonden';
+            }
+
+            // Check links
+            var links = content.match(/<a[^>]*href=[^>]*>/gi) || [];
+            var linkCount = links.length;
+            var linksStatus = document.getElementById('check-links-status');
+            var linksText = document.getElementById('check-links-text');
+            if (linkCount >= 3) {
+                linksStatus.className = 'status good';
+                linksStatus.textContent = '✓';
+                linksText.textContent = 'Links: ' + linkCount + ' gevonden';
+            } else if (linkCount >= 1) {
+                linksStatus.className = 'status warning';
+                linksStatus.textContent = '!';
+                linksText.textContent = 'Links: ' + linkCount + ' (voeg er meer toe)';
+            } else {
+                linksStatus.className = 'status bad';
+                linksStatus.textContent = '✗';
+                linksText.textContent = 'Links: geen gevonden';
+            }
+
+            return { content: content, plainText: plainText, wordCount: wordCount };
+        }
+
         function checkKeyword() {
             var keyword = keywordInput.value.toLowerCase().trim();
+            var contentData = analyzeContent();
+
             if (!keyword) {
                 document.getElementById('kw-title-status').className = 'status';
                 document.getElementById('kw-title-status').textContent = '?';
@@ -458,11 +707,20 @@ function writgo_seo_options_callback($post) {
                 document.getElementById('kw-desc-status').textContent = '?';
                 document.getElementById('kw-url-status').className = 'status';
                 document.getElementById('kw-url-status').textContent = '?';
+                document.getElementById('kw-content-status').className = 'status';
+                document.getElementById('kw-content-status').textContent = '?';
+                document.getElementById('kw-headings-status').className = 'status';
+                document.getElementById('kw-headings-status').textContent = '?';
+                document.getElementById('kw-density-status').className = 'status';
+                document.getElementById('kw-density-status').textContent = '?';
+                document.getElementById('kw-density-text').textContent = 'Keyword density: -';
                 return;
             }
 
             var title = (titleInput.value || titleInput.getAttribute('data-default')).toLowerCase();
             var desc = (descInput.value || descInput.getAttribute('data-default')).toLowerCase();
+            var content = contentData.content.toLowerCase();
+            var plainText = contentData.plainText.toLowerCase();
 
             // Check title
             var titleStatus = document.getElementById('kw-title-status');
@@ -494,16 +752,100 @@ function writgo_seo_options_callback($post) {
                 urlStatus.className = 'status warning';
                 urlStatus.textContent = '!';
             }
+
+            // Check first paragraph
+            var contentStatus = document.getElementById('kw-content-status');
+            var firstParaMatch = content.match(/<p[^>]*>(.*?)<\/p>/i);
+            var firstParagraph = firstParaMatch ? firstParaMatch[1].toLowerCase() : plainText.substring(0, 500);
+            if (firstParagraph.indexOf(keyword) !== -1) {
+                contentStatus.className = 'status good';
+                contentStatus.textContent = '✓';
+            } else {
+                contentStatus.className = 'status bad';
+                contentStatus.textContent = '✗';
+            }
+
+            // Check headings for keyword
+            var headingsStatus = document.getElementById('kw-headings-status');
+            var headingMatches = content.match(/<h[23][^>]*>.*?<\/h[23]>/gi) || [];
+            var keywordInHeadings = headingMatches.some(function(h) {
+                return h.toLowerCase().indexOf(keyword) !== -1;
+            });
+            if (keywordInHeadings) {
+                headingsStatus.className = 'status good';
+                headingsStatus.textContent = '✓';
+            } else {
+                headingsStatus.className = 'status bad';
+                headingsStatus.textContent = '✗';
+            }
+
+            // Calculate keyword density
+            var densityStatus = document.getElementById('kw-density-status');
+            var densityText = document.getElementById('kw-density-text');
+            var wordCount = contentData.wordCount;
+            if (wordCount > 0) {
+                var keywordRegex = new RegExp(keyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+                var keywordMatches = plainText.match(keywordRegex) || [];
+                var keywordCount = keywordMatches.length;
+                var density = (keywordCount / wordCount) * 100;
+
+                densityText.textContent = 'Keyword density: ' + density.toFixed(2) + '% (' + keywordCount + 'x in ' + wordCount + ' woorden)';
+
+                if (density >= 0.5 && density <= 2.5) {
+                    densityStatus.className = 'status good';
+                    densityStatus.textContent = '✓';
+                } else if (density > 2.5) {
+                    densityStatus.className = 'status warning';
+                    densityStatus.textContent = '!';
+                    densityText.textContent += ' - te hoog!';
+                } else {
+                    densityStatus.className = 'status bad';
+                    densityStatus.textContent = '✗';
+                    densityText.textContent += ' - te laag';
+                }
+            } else {
+                densityText.textContent = 'Keyword density: geen content';
+                densityStatus.className = 'status';
+                densityStatus.textContent = '?';
+            }
         }
 
         titleInput.addEventListener('input', function() { updateTitleCount(); checkKeyword(); });
         descInput.addEventListener('input', function() { updateDescCount(); checkKeyword(); });
         keywordInput.addEventListener('input', checkKeyword);
 
+        // Listen for TinyMCE changes
+        if (typeof tinymce !== 'undefined') {
+            tinymce.on('AddEditor', function(e) {
+                if (e.editor.id === 'content') {
+                    e.editor.on('change keyup', function() {
+                        setTimeout(checkKeyword, 100);
+                    });
+                }
+            });
+            // For already loaded editor
+            setTimeout(function() {
+                var editor = tinymce.get('content');
+                if (editor) {
+                    editor.on('change keyup', function() {
+                        setTimeout(checkKeyword, 100);
+                    });
+                }
+            }, 1000);
+        }
+
+        // Listen for text mode changes
+        var contentArea = document.getElementById('content');
+        if (contentArea) {
+            contentArea.addEventListener('input', function() {
+                setTimeout(checkKeyword, 100);
+            });
+        }
+
         // Initial update
         updateTitleCount();
         updateDescCount();
-        checkKeyword();
+        setTimeout(checkKeyword, 500);
 
         // Social preview tabs
         document.querySelectorAll('.writgo-tab-btn').forEach(function(btn) {
