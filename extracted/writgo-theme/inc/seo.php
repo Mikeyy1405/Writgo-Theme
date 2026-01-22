@@ -180,3 +180,590 @@ function writgo_canonical_url() {
         echo '<link rel="canonical" href="' . esc_url(get_category_link(get_queried_object_id())) . '">' . "\n";
     }
 }
+
+/**
+ * Add Google Search Console verification meta tag
+ */
+add_action('wp_head', 'writgo_gsc_verification', 1);
+function writgo_gsc_verification() {
+    $gsc_code = get_theme_mod('writgo_gsc_verification', '');
+    if ($gsc_code) {
+        echo '<meta name="google-site-verification" content="' . esc_attr($gsc_code) . '">' . "\n";
+    }
+
+    $bing_code = get_theme_mod('writgo_bing_verification', '');
+    if ($bing_code) {
+        echo '<meta name="msvalidate.01" content="' . esc_attr($bing_code) . '">' . "\n";
+    }
+}
+
+/**
+ * =====================================================
+ * BREADCRUMB SCHEMA
+ * =====================================================
+ */
+add_action('wp_head', 'writgo_breadcrumb_schema');
+function writgo_breadcrumb_schema() {
+    if (is_front_page() || is_home()) {
+        return;
+    }
+
+    $items = array();
+    $position = 1;
+
+    // Home
+    $items[] = array(
+        '@type' => 'ListItem',
+        'position' => $position++,
+        'name' => __('Home', 'writgo-affiliate'),
+        'item' => home_url('/')
+    );
+
+    if (is_category()) {
+        $cat = get_queried_object();
+        if ($cat->parent) {
+            $parent = get_category($cat->parent);
+            $items[] = array(
+                '@type' => 'ListItem',
+                'position' => $position++,
+                'name' => $parent->name,
+                'item' => get_category_link($parent->term_id)
+            );
+        }
+        $items[] = array(
+            '@type' => 'ListItem',
+            'position' => $position++,
+            'name' => $cat->name,
+            'item' => get_category_link($cat->term_id)
+        );
+    } elseif (is_singular('post')) {
+        $cats = get_the_category();
+        if ($cats) {
+            $cat = $cats[0];
+            $items[] = array(
+                '@type' => 'ListItem',
+                'position' => $position++,
+                'name' => $cat->name,
+                'item' => get_category_link($cat->term_id)
+            );
+        }
+        $items[] = array(
+            '@type' => 'ListItem',
+            'position' => $position++,
+            'name' => get_the_title()
+        );
+    } elseif (is_page()) {
+        global $post;
+        if ($post->post_parent) {
+            $parent = get_post($post->post_parent);
+            $items[] = array(
+                '@type' => 'ListItem',
+                'position' => $position++,
+                'name' => $parent->post_title,
+                'item' => get_permalink($parent->ID)
+            );
+        }
+        $items[] = array(
+            '@type' => 'ListItem',
+            'position' => $position++,
+            'name' => get_the_title()
+        );
+    } elseif (is_search()) {
+        $items[] = array(
+            '@type' => 'ListItem',
+            'position' => $position++,
+            'name' => __('Zoekresultaten', 'writgo-affiliate')
+        );
+    }
+
+    if (count($items) > 1) {
+        $schema = array(
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => $items
+        );
+        echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>' . "\n";
+    }
+}
+
+/**
+ * =====================================================
+ * LOCALBUSINESS SCHEMA
+ * =====================================================
+ */
+add_action('wp_head', 'writgo_localbusiness_schema');
+function writgo_localbusiness_schema() {
+    if (!is_front_page()) {
+        return;
+    }
+
+    $company_name = get_theme_mod('writgo_company_name', '');
+    if (!$company_name) {
+        return;
+    }
+
+    $schema = array(
+        '@context' => 'https://schema.org',
+        '@type' => 'Organization',
+        'name' => $company_name,
+        'url' => home_url('/'),
+    );
+
+    // Add logo if custom logo exists
+    if (has_custom_logo()) {
+        $logo_id = get_theme_mod('custom_logo');
+        $logo_url = wp_get_attachment_image_url($logo_id, 'full');
+        if ($logo_url) {
+            $schema['logo'] = $logo_url;
+        }
+    }
+
+    // Add address if set
+    $address = get_theme_mod('writgo_company_address', '');
+    $city = get_theme_mod('writgo_company_city', '');
+    $postal = get_theme_mod('writgo_company_postal', '');
+    if ($address || $city) {
+        $schema['address'] = array(
+            '@type' => 'PostalAddress',
+            'streetAddress' => $address,
+            'addressLocality' => $city,
+            'postalCode' => $postal,
+            'addressCountry' => 'NL'
+        );
+    }
+
+    // Add contact info
+    $email = get_theme_mod('writgo_contact_email', get_option('admin_email'));
+    if ($email) {
+        $schema['email'] = $email;
+    }
+
+    // Add social profiles
+    $social_urls = array();
+    $social_platforms = array('facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'pinterest', 'tiktok');
+    foreach ($social_platforms as $platform) {
+        $url = get_theme_mod('writgo_social_' . $platform, '');
+        if ($url) {
+            $social_urls[] = $url;
+        }
+    }
+    if ($social_urls) {
+        $schema['sameAs'] = $social_urls;
+    }
+
+    echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>' . "\n";
+}
+
+/**
+ * =====================================================
+ * FAQ SCHEMA SHORTCODE
+ * [writgo_faq]
+ * <faq question="Vraag hier?">Antwoord hier</faq>
+ * [/writgo_faq]
+ * =====================================================
+ */
+add_shortcode('writgo_faq', 'writgo_faq_shortcode');
+function writgo_faq_shortcode($atts, $content = null) {
+    if (!$content) {
+        return '';
+    }
+
+    // Parse FAQ items from content
+    $faq_items = array();
+    preg_match_all('/<faq\s+question=["\']([^"\']+)["\']>(.*?)<\/faq>/is', $content, $matches, PREG_SET_ORDER);
+
+    if (empty($matches)) {
+        return '';
+    }
+
+    $html = '<div class="writgo-faq-list">';
+    foreach ($matches as $match) {
+        $question = esc_html($match[1]);
+        $answer = wp_kses_post(trim($match[2]));
+
+        $faq_items[] = array(
+            '@type' => 'Question',
+            'name' => $question,
+            'acceptedAnswer' => array(
+                '@type' => 'Answer',
+                'text' => strip_tags($answer)
+            )
+        );
+
+        $html .= '<div class="writgo-faq-item">';
+        $html .= '<button class="writgo-faq-question" aria-expanded="false">';
+        $html .= '<span>' . $question . '</span>';
+        $html .= '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        $html .= '</button>';
+        $html .= '<div class="writgo-faq-answer">' . $answer . '</div>';
+        $html .= '</div>';
+    }
+    $html .= '</div>';
+
+    // Add FAQ Schema
+    if ($faq_items) {
+        $schema = array(
+            '@context' => 'https://schema.org',
+            '@type' => 'FAQPage',
+            'mainEntity' => $faq_items
+        );
+        $html .= '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>';
+    }
+
+    // Add inline styles
+    $html .= '<style>
+        .writgo-faq-list { margin: 2rem 0; }
+        .writgo-faq-item { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+        .writgo-faq-question { width: 100%; padding: 16px 20px; background: #f9fafb; border: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 600; color: #1f2937; text-align: left; transition: background 0.2s; }
+        .writgo-faq-question:hover { background: #f3f4f6; }
+        .writgo-faq-question svg { transition: transform 0.3s; flex-shrink: 0; margin-left: 12px; }
+        .writgo-faq-question[aria-expanded="true"] svg { transform: rotate(180deg); }
+        .writgo-faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; padding: 0 20px; }
+        .writgo-faq-item.active .writgo-faq-answer { max-height: 500px; padding: 16px 20px; }
+    </style>';
+
+    // Add inline script
+    $html .= '<script>
+        document.querySelectorAll(".writgo-faq-question").forEach(function(btn) {
+            btn.addEventListener("click", function() {
+                var item = this.closest(".writgo-faq-item");
+                var isActive = item.classList.contains("active");
+                document.querySelectorAll(".writgo-faq-item").forEach(function(i) { i.classList.remove("active"); });
+                document.querySelectorAll(".writgo-faq-question").forEach(function(b) { b.setAttribute("aria-expanded", "false"); });
+                if (!isActive) {
+                    item.classList.add("active");
+                    this.setAttribute("aria-expanded", "true");
+                }
+            });
+        });
+    </script>';
+
+    return $html;
+}
+
+/**
+ * =====================================================
+ * XML SITEMAP
+ * =====================================================
+ */
+add_action('init', 'writgo_register_sitemap_routes');
+function writgo_register_sitemap_routes() {
+    add_rewrite_rule('^sitemap\.xml$', 'index.php?writgo_sitemap=index', 'top');
+    add_rewrite_rule('^sitemap-posts\.xml$', 'index.php?writgo_sitemap=posts', 'top');
+    add_rewrite_rule('^sitemap-pages\.xml$', 'index.php?writgo_sitemap=pages', 'top');
+    add_rewrite_rule('^sitemap-categories\.xml$', 'index.php?writgo_sitemap=categories', 'top');
+}
+
+add_filter('query_vars', 'writgo_sitemap_query_vars');
+function writgo_sitemap_query_vars($vars) {
+    $vars[] = 'writgo_sitemap';
+    return $vars;
+}
+
+add_action('template_redirect', 'writgo_render_sitemap');
+function writgo_render_sitemap() {
+    $sitemap_type = get_query_var('writgo_sitemap');
+    if (!$sitemap_type) {
+        return;
+    }
+
+    // Skip if Yoast or RankMath is active
+    if (defined('WPSEO_VERSION') || class_exists('RankMath')) {
+        return;
+    }
+
+    header('Content-Type: application/xml; charset=utf-8');
+    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+
+    if ($sitemap_type === 'index') {
+        writgo_sitemap_index();
+    } elseif ($sitemap_type === 'posts') {
+        writgo_sitemap_posts();
+    } elseif ($sitemap_type === 'pages') {
+        writgo_sitemap_pages();
+    } elseif ($sitemap_type === 'categories') {
+        writgo_sitemap_categories();
+    }
+    exit;
+}
+
+function writgo_sitemap_index() {
+    echo '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+    // Posts sitemap
+    echo '<sitemap>';
+    echo '<loc>' . esc_url(home_url('/sitemap-posts.xml')) . '</loc>';
+    echo '<lastmod>' . date('c') . '</lastmod>';
+    echo '</sitemap>' . "\n";
+
+    // Pages sitemap
+    echo '<sitemap>';
+    echo '<loc>' . esc_url(home_url('/sitemap-pages.xml')) . '</loc>';
+    echo '<lastmod>' . date('c') . '</lastmod>';
+    echo '</sitemap>' . "\n";
+
+    // Categories sitemap
+    echo '<sitemap>';
+    echo '<loc>' . esc_url(home_url('/sitemap-categories.xml')) . '</loc>';
+    echo '<lastmod>' . date('c') . '</lastmod>';
+    echo '</sitemap>' . "\n";
+
+    echo '</sitemapindex>';
+}
+
+function writgo_sitemap_posts() {
+    echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+    $posts = get_posts(array(
+        'post_type' => 'post',
+        'post_status' => 'publish',
+        'posts_per_page' => 1000,
+        'orderby' => 'modified',
+        'order' => 'DESC',
+        'meta_query' => array(
+            'relation' => 'OR',
+            array('key' => '_writgo_robots_index', 'compare' => 'NOT EXISTS'),
+            array('key' => '_writgo_robots_index', 'value' => 'index')
+        )
+    ));
+
+    // Add homepage
+    echo '<url>';
+    echo '<loc>' . esc_url(home_url('/')) . '</loc>';
+    echo '<changefreq>daily</changefreq>';
+    echo '<priority>1.0</priority>';
+    echo '</url>' . "\n";
+
+    foreach ($posts as $post) {
+        echo '<url>';
+        echo '<loc>' . esc_url(get_permalink($post)) . '</loc>';
+        echo '<lastmod>' . get_the_modified_date('c', $post) . '</lastmod>';
+        echo '<changefreq>weekly</changefreq>';
+        echo '<priority>0.8</priority>';
+        echo '</url>' . "\n";
+    }
+
+    echo '</urlset>';
+}
+
+function writgo_sitemap_pages() {
+    echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+    $pages = get_posts(array(
+        'post_type' => 'page',
+        'post_status' => 'publish',
+        'posts_per_page' => 500,
+        'orderby' => 'modified',
+        'order' => 'DESC',
+        'meta_query' => array(
+            'relation' => 'OR',
+            array('key' => '_writgo_robots_index', 'compare' => 'NOT EXISTS'),
+            array('key' => '_writgo_robots_index', 'value' => 'index')
+        )
+    ));
+
+    foreach ($pages as $page) {
+        echo '<url>';
+        echo '<loc>' . esc_url(get_permalink($page)) . '</loc>';
+        echo '<lastmod>' . get_the_modified_date('c', $page) . '</lastmod>';
+        echo '<changefreq>monthly</changefreq>';
+        echo '<priority>0.6</priority>';
+        echo '</url>' . "\n";
+    }
+
+    echo '</urlset>';
+}
+
+function writgo_sitemap_categories() {
+    echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+    $categories = get_categories(array('hide_empty' => true));
+
+    foreach ($categories as $cat) {
+        echo '<url>';
+        echo '<loc>' . esc_url(get_category_link($cat->term_id)) . '</loc>';
+        echo '<changefreq>weekly</changefreq>';
+        echo '<priority>0.7</priority>';
+        echo '</url>' . "\n";
+    }
+
+    echo '</urlset>';
+}
+
+/**
+ * =====================================================
+ * LLMS.TXT (AI Crawler Instructions)
+ * =====================================================
+ */
+add_action('init', 'writgo_register_llms_routes');
+function writgo_register_llms_routes() {
+    add_rewrite_rule('^llms\.txt$', 'index.php?writgo_llms=1', 'top');
+}
+
+add_filter('query_vars', 'writgo_llms_query_vars');
+function writgo_llms_query_vars($vars) {
+    $vars[] = 'writgo_llms';
+    return $vars;
+}
+
+add_action('template_redirect', 'writgo_render_llms');
+function writgo_render_llms() {
+    if (!get_query_var('writgo_llms')) {
+        return;
+    }
+
+    header('Content-Type: text/plain; charset=utf-8');
+
+    $site_name = get_bloginfo('name');
+    $site_desc = get_bloginfo('description');
+    $site_url = home_url('/');
+
+    // Get custom llms.txt content or use default
+    $custom_content = get_theme_mod('writgo_llms_content', '');
+
+    if ($custom_content) {
+        echo $custom_content;
+    } else {
+        // Default llms.txt content
+        echo "# " . $site_name . "\n\n";
+        echo "> " . $site_desc . "\n\n";
+        echo "Website: " . $site_url . "\n\n";
+        echo "## Over deze website\n\n";
+        echo "Dit is een affiliate website met reviews en vergelijkingen.\n";
+        echo "De content is bedoeld om bezoekers te helpen bij aankoopbeslissingen.\n\n";
+        echo "## Belangrijke pagina's\n\n";
+
+        // List recent posts
+        $posts = get_posts(array('numberposts' => 10, 'post_status' => 'publish'));
+        foreach ($posts as $post) {
+            echo "- [" . $post->post_title . "](" . get_permalink($post) . ")\n";
+        }
+
+        echo "\n## Categorieën\n\n";
+        $cats = get_categories(array('hide_empty' => true, 'number' => 10));
+        foreach ($cats as $cat) {
+            echo "- [" . $cat->name . "](" . get_category_link($cat) . ")\n";
+        }
+
+        echo "\n## Contact\n\n";
+        echo "Neem contact op via de contactpagina op de website.\n";
+
+        echo "\n## Licentie\n\n";
+        echo "Alle content is auteursrechtelijk beschermd. Gebruik met bronvermelding toegestaan.\n";
+    }
+
+    exit;
+}
+
+/**
+ * =====================================================
+ * ROBOTS.TXT CUSTOMIZATION
+ * =====================================================
+ */
+add_filter('robots_txt', 'writgo_custom_robots_txt', 10, 2);
+function writgo_custom_robots_txt($output, $public) {
+    // Check for custom robots.txt content
+    $custom_robots = get_theme_mod('writgo_robots_txt', '');
+
+    if ($custom_robots) {
+        return $custom_robots;
+    }
+
+    // Default enhanced robots.txt
+    $output = "User-agent: *\n";
+    $output .= "Allow: /\n";
+    $output .= "Disallow: /wp-admin/\n";
+    $output .= "Disallow: /wp-includes/\n";
+    $output .= "Disallow: /wp-content/plugins/\n";
+    $output .= "Disallow: /wp-content/cache/\n";
+    $output .= "Disallow: /wp-content/themes/*/assets/\n";
+    $output .= "Disallow: /*?*\n";
+    $output .= "Disallow: /search/\n\n";
+
+    // Add sitemap reference
+    $output .= "Sitemap: " . home_url('/sitemap.xml') . "\n";
+
+    // Add llms.txt reference
+    $output .= "\n# AI Crawlers\n";
+    $output .= "User-agent: GPTBot\n";
+    $output .= "Allow: /\n\n";
+    $output .= "User-agent: ChatGPT-User\n";
+    $output .= "Allow: /\n\n";
+    $output .= "User-agent: Claude-Web\n";
+    $output .= "Allow: /\n\n";
+    $output .= "User-agent: anthropic-ai\n";
+    $output .= "Allow: /\n";
+
+    return $output;
+}
+
+/**
+ * =====================================================
+ * SEO ADMIN SETTINGS (Customizer)
+ * =====================================================
+ */
+add_action('customize_register', 'writgo_seo_customizer');
+function writgo_seo_customizer($wp_customize) {
+    // SEO Section
+    $wp_customize->add_section('writgo_seo_settings', array(
+        'title' => __('🔍 SEO Instellingen', 'writgo-affiliate'),
+        'priority' => 35,
+    ));
+
+    // Google Search Console Verification
+    $wp_customize->add_setting('writgo_gsc_verification', array(
+        'default' => '',
+        'sanitize_callback' => 'sanitize_text_field',
+    ));
+    $wp_customize->add_control('writgo_gsc_verification', array(
+        'label' => __('Google Search Console Code', 'writgo-affiliate'),
+        'description' => __('Alleen de code, niet de volledige meta tag', 'writgo-affiliate'),
+        'section' => 'writgo_seo_settings',
+        'type' => 'text',
+    ));
+
+    // Bing Verification
+    $wp_customize->add_setting('writgo_bing_verification', array(
+        'default' => '',
+        'sanitize_callback' => 'sanitize_text_field',
+    ));
+    $wp_customize->add_control('writgo_bing_verification', array(
+        'label' => __('Bing Webmaster Code', 'writgo-affiliate'),
+        'section' => 'writgo_seo_settings',
+        'type' => 'text',
+    ));
+
+    // Custom robots.txt
+    $wp_customize->add_setting('writgo_robots_txt', array(
+        'default' => '',
+        'sanitize_callback' => 'sanitize_textarea_field',
+    ));
+    $wp_customize->add_control('writgo_robots_txt', array(
+        'label' => __('Custom robots.txt', 'writgo-affiliate'),
+        'description' => __('Laat leeg voor standaard. Voer volledige robots.txt inhoud in.', 'writgo-affiliate'),
+        'section' => 'writgo_seo_settings',
+        'type' => 'textarea',
+    ));
+
+    // Custom llms.txt
+    $wp_customize->add_setting('writgo_llms_content', array(
+        'default' => '',
+        'sanitize_callback' => 'sanitize_textarea_field',
+    ));
+    $wp_customize->add_control('writgo_llms_content', array(
+        'label' => __('Custom llms.txt', 'writgo-affiliate'),
+        'description' => __('Instructies voor AI crawlers. Laat leeg voor automatisch.', 'writgo-affiliate'),
+        'section' => 'writgo_seo_settings',
+        'type' => 'textarea',
+    ));
+}
+
+/**
+ * Flush rewrite rules on theme activation
+ */
+add_action('after_switch_theme', 'writgo_flush_rewrite_rules');
+function writgo_flush_rewrite_rules() {
+    writgo_register_sitemap_routes();
+    writgo_register_llms_routes();
+    flush_rewrite_rules();
+}
