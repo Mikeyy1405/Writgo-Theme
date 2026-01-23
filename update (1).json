@@ -1,0 +1,14 @@
+{
+    "name": "Writgo Affiliate Theme",
+    "version": "8.6.0",
+    "author": "Writgo Media",
+    "homepage": "https://writgo.nl",
+    "requires": "5.0",
+    "tested": "6.7",
+    "requires_php": "7.4",
+    "last_updated": "2026-01-23",
+    "download_url": "https://github.com/Mikeyy1405/Writgo-Theme/releases/download/v8.6.0/writgo-theme.zip",
+    "details_url": "https://github.com/Mikeyy1405/Writgo-Theme/releases",
+    "description": "Premium WordPress affiliate theme met ingebouwde SEO, meertalige ondersteuning, en professionele affiliate tools.",
+    "changelog": "<h4>Versie 8.6.0 - 23 januari 2026</h4><ul><li>✨ Sidebar Widget nu aanpasbaar: Nieuwsbrief, CTA, Advertentie of Custom HTML</li><li>✨ Custom icoon/emoji voor widget</li><li>✨ Afbeelding upload voor advertenties</li></ul><h4>Versie 8.5.0</h4><ul><li>SEO overzicht met correcte scores</li><li>Footer kleuren volgen thema</li><li>Auto-update systeem via GitHub</li></ul>"
+}
