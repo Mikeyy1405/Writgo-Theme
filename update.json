@@ -1,4 +1,6 @@
-"version": "8.7.0",
+{
+    "version": "8.7.0",
     "details_url": "https://github.com/Mikeyy1405/Writgo-Theme",
     "download_url": "https://github.com/Mikeyy1405/Writgo-Theme/releases/download/v8.7.0/writgo-theme.zip",
-    "changelog": "8.7.0 - Volledige meertalige ondersteuning..."
+    "changelog": "8.7.0 - Volledige meertalige ondersteuning:\n- Blog pagina teksten vertaald (index.php)\n- Archief pagina teksten vertaald (archive.php)\n- Nieuwe vertalingen: blog_description, load_more, no_articles_found, all_articles_loaded, error_try_again, no_articles_in_category\n- JavaScript teksten nu dynamisch vertaald via data-attributen\n- Ondersteunde talen: NL, EN, DE, FR"
+}
