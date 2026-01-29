@@ -1,21 +1,14 @@
 {
-    "name": "Writgo Theme",
+    "name": "Writgo Affiliate Theme",
     "slug": "writgo-theme",
     "version": "9.3.0",
     "author": "Writgo Media",
-    "author_profile": "https://writgo.nl",
-    "download_url": "https://github.com/JOUW-USERNAME/writgo-theme/releases/download/v9.3.0/writgo-theme-v9.3.0.zip",
-    "sections": {
-        "description": "Premium affiliate marketing thema met ingebouwde SEO, performance optimalisaties en conversie tools.",
-        "changelog": "<h4>9.3.0 - 29 januari 2025</h4><ul><li><strong>NIEUW: Performance Module</strong> - Core Web Vitals optimalisaties</li><li><strong>NIEUW: Preconnect</strong> - Google Fonts vooraf verbinden (-750ms)</li><li><strong>NIEUW: LCP Preload</strong> - Hero afbeelding preloaden</li><li><strong>NIEUW: Non-blocking Fonts</strong> - Geen render-blocking meer</li><li><strong>NIEUW: Critical CSS Inline</strong> - Snellere FCP</li><li><strong>NIEUW: WebP Support</strong> - Automatische detectie</li><li><strong>NIEUW: 1 Jaar Cache</strong> - Langere cache headers</li><li><strong>NIEUW: Emoji's Uit</strong> - -56KB JavaScript</li><li><strong>NIEUW: Blog Zoekbalk</strong> - Live search met preview</li><li><strong>NIEUW: Popup Systeem</strong> - Modal, slide-in, exit intent</li><li><strong>NIEUW: CTA Boxes</strong> - Herbruikbare CTA's</li><li><strong>NIEUW: Hero Kleuren</strong> - Overlay instelbaar</li></ul>",
-        "installation": "Upload het thema via Weergave > Thema's > Nieuwe toevoegen > Thema uploaden"
-    },
+    "homepage": "https://writgo.nl",
+    "download_url": "https://github.com/Mikeyy1405/Writgo-Theme/releases/download/v9.3.0/writgo-theme-v9.3.0.zip",
+    "description": "Premium affiliate marketing thema met ingebouwde SEO, performance optimalisaties en conversie tools.",
+    "changelog": "<h4>9.3.0 - 29 januari 2025</h4><ul><li><strong>NIEUW: Performance Module</strong> - Core Web Vitals optimalisaties</li><li><strong>NIEUW: Preconnect</strong> - Google Fonts vooraf verbinden (-750ms)</li><li><strong>NIEUW: LCP Preload</strong> - Hero afbeelding preloaden</li><li><strong>NIEUW: Non-blocking Fonts</strong> - Geen render-blocking meer</li><li><strong>NIEUW: Critical CSS Inline</strong> - Snellere FCP</li><li><strong>NIEUW: WebP Support</strong> - Automatische detectie</li><li><strong>NIEUW: 1 Jaar Cache</strong> - Langere cache headers</li><li><strong>NIEUW: Emoji's Uit</strong> - -56KB JavaScript</li><li><strong>NIEUW: Blog Zoekbalk</strong> - Live search met preview</li><li><strong>NIEUW: Popup Systeem</strong> - Modal, slide-in, exit intent</li><li><strong>NIEUW: CTA Boxes</strong> - Herbruikbare CTA's</li><li><strong>NIEUW: Hero Kleuren</strong> - Overlay instelbaar</li></ul>",
     "tested": "6.7",
     "requires": "6.0",
     "requires_php": "7.4",
-    "last_updated": "2025-01-29",
-    "banners": {
-        "low": "https://github.com/JOUW-USERNAME/writgo-theme/raw/main/assets/banner-772x250.png",
-        "high": "https://github.com/JOUW-USERNAME/writgo-theme/raw/main/assets/banner-1544x500.png"
-    }
+    "last_updated": "2025-01-29"
 }
