@@ -175,6 +175,8 @@ function writgo_post_options_callback($post) {
  * Affiliate Options Meta Box Callback
  */
 function writgo_affiliate_options_callback($post) {
+    wp_nonce_field('writgo_affiliate_options', 'writgo_affiliate_options_nonce');
+    
     $sticky_enabled = get_post_meta($post->ID, '_writgo_sticky_cta', true);
     $sticky_title = get_post_meta($post->ID, '_writgo_sticky_title', true);
     $sticky_price = get_post_meta($post->ID, '_writgo_sticky_price', true);
@@ -251,11 +253,23 @@ function writgo_affiliate_options_callback($post) {
 /**
  * Save Meta Box Data
  */
-add_action('save_post', 'writgo_save_meta_boxes');
+add_action('save_post', 'writgo_save_meta_boxes', 10, 1);
 function writgo_save_meta_boxes($post_id) {
-    // Check nonce
-    if (!isset($_POST['writgo_post_options_nonce']) || 
-        !wp_verify_nonce($_POST['writgo_post_options_nonce'], 'writgo_post_options')) {
+    // Check if nonce is present (from either meta box)
+    $has_valid_nonce = false;
+    
+    if (isset($_POST['writgo_post_options_nonce']) && 
+        wp_verify_nonce($_POST['writgo_post_options_nonce'], 'writgo_post_options')) {
+        $has_valid_nonce = true;
+    }
+    
+    if (isset($_POST['writgo_affiliate_options_nonce']) && 
+        wp_verify_nonce($_POST['writgo_affiliate_options_nonce'], 'writgo_affiliate_options')) {
+        $has_valid_nonce = true;
+    }
+    
+    // Only proceed if we have at least one valid nonce
+    if (!$has_valid_nonce) {
         return;
     }
     
