@@ -56,7 +56,7 @@ if (!$featured_query->have_posts()) {
 $featured_id = $featured_query->have_posts() ? $featured_query->posts[0]->ID : 0;
 ?>
 
-<main class="wa-home">
+<main id="main-content" class="wa-home">
 
     <?php if ($show_hero) : 
         $hero_overlay = get_theme_mod('writgo_hero_overlay_color', 'rgba(0,0,0,0.5)');

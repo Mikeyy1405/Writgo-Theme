@@ -8,10 +8,36 @@
   "author": "Writgo",
   "author_url": "https://writgo.nl",
   "theme_url": "https://writgo.nl",
-  "download_url": "https://github.com/Mikeyy1405/Writgo-Theme/releases/download/v9.3.0-production/writgo-theme-9.3.0.zip",
+  "download_url": "https://writgo.nl/downloads/writgo-theme-9.4.0.zip",
   "homepage": "https://writgo.nl",
   "repository_url": "https://github.com/Mikeyy1405/Writgo-Theme",
   "versions": {
+    "9.4.0": {
+      "version": "9.4.0",
+      "download_url": "https://writgo.nl/downloads/writgo-theme-9.4.0.zip",
+      "requires": "6.0",
+      "requires_php": "7.4",
+      "date": "2026-02-06",
+      "tested": "6.7",
+      "changelog": "SEO Improvements v9.4.0:\n- Fixed: Homepage og:type shows 'website' instead of 'article' on static front pages\n- Fixed: Homepage meta description and og:title now use site name + tagline\n- Fixed: Dynamic og:locale based on theme language (nl/en/de/fr)\n- Added: Skip-to-content accessibility link in header\n- Added: main-content landmark IDs on all page templates\n- Added: rel=prev/next pagination links for archives\n- Added: Tag, author and generic archive meta descriptions\n- Added: Skip-link critical CSS for accessibility\n- Improved: Category/archive descriptions now translatable",
+      "sections": {
+        "description": "Professional affiliate theme optimized for SEO and conversions",
+        "features": [
+          "Responsive design",
+          "SEO optimization",
+          "Affiliate features",
+          "Performance optimized",
+          "Security hardened",
+          "Multilingual support",
+          "Custom widgets",
+          "Accessibility skip links",
+          "Dynamic Open Graph locale",
+          "Pagination SEO links"
+        ],
+        "requires": "WordPress 6.0 or higher",
+        "requires_php": "PHP 7.4 or higher"
+      }
+    },
     "9.3.0": {
       "version": "9.3.0",
       "download_url": "https://github.com/Mikeyy1405/Writgo-Theme/releases/download/v9.3.0-production/writgo-theme-9.3.0.zip",
@@ -43,9 +69,9 @@
       "date": "2025-12-15"
     }
   },
-  "current": "9.3.0",
-  "stable": "9.3.0",
-  "latest": "9.3.0",
+  "current": "9.4.0",
+  "stable": "9.4.0",
+  "latest": "9.4.0",
   "screenshots": {
     "featured": "https://raw.githubusercontent.com/Mikeyy1405/Writgo-Theme/main/screenshot.png"
   },

@@ -300,13 +300,45 @@ function writgo_enhanced_social_meta() {
     $twitter_description = $description;
     $twitter_image = $image;
     
-    if (is_singular()) {
+    if (is_front_page()) {
+        // Front page: use site name + tagline, og:type = website
+        $title = get_bloginfo('name') . ' - ' . get_bloginfo('description');
+        $description = get_bloginfo('description');
+        $url = home_url('/');
+
+        // Check if static front page has custom SEO values
+        if ($post && $post->ID) {
+            $seo_title = get_post_meta($post->ID, '_writgo_seo_title', true);
+            $seo_desc = get_post_meta($post->ID, '_writgo_seo_description', true);
+            $custom_og_title = get_post_meta($post->ID, '_writgo_og_title', true);
+            $custom_og_desc = get_post_meta($post->ID, '_writgo_og_description', true);
+            $custom_og_image = get_post_meta($post->ID, '_writgo_og_image', true);
+
+            if ($seo_title) $title = $seo_title;
+            if ($seo_desc) $description = $seo_desc;
+            if ($custom_og_image) $image = $custom_og_image;
+            if (has_post_thumbnail($post->ID)) {
+                $image = get_the_post_thumbnail_url($post->ID, 'large');
+            }
+            if ($custom_og_title) $og_title = $custom_og_title;
+            if ($custom_og_desc) $og_description = $custom_og_desc;
+        }
+
+        $og_title = !empty($og_title) && $og_title !== get_bloginfo('name') ? $og_title : $title;
+        $og_description = !empty($og_description) && $og_description !== get_bloginfo('description') ? $og_description : $description;
+        $og_image = $image;
+        $twitter_title = $og_title;
+        $twitter_description = $og_description;
+        $twitter_image = $og_image;
+        $is_front = true;
+
+    } elseif (is_singular()) {
         // Get SEO values
         $seo_title = get_post_meta($post->ID, '_writgo_seo_title', true);
         $seo_desc = get_post_meta($post->ID, '_writgo_seo_description', true);
         $noindex = get_post_meta($post->ID, '_writgo_noindex', true);
         $nofollow = get_post_meta($post->ID, '_writgo_nofollow', true);
-        
+
         // Get social specific values
         $custom_og_title = get_post_meta($post->ID, '_writgo_og_title', true);
         $custom_og_desc = get_post_meta($post->ID, '_writgo_og_description', true);
@@ -314,40 +346,61 @@ function writgo_enhanced_social_meta() {
         $custom_twitter_title = get_post_meta($post->ID, '_writgo_twitter_title', true);
         $custom_twitter_desc = get_post_meta($post->ID, '_writgo_twitter_description', true);
         $custom_twitter_image = get_post_meta($post->ID, '_writgo_twitter_image', true);
-        
+
         // Base values
         $title = $seo_title ?: get_the_title();
         $description = $seo_desc ?: (has_excerpt() ? get_the_excerpt() : wp_trim_words(strip_tags($post->post_content), 30));
         $url = get_permalink();
-        
+
         // Default image
         if (has_post_thumbnail()) {
             $image = get_the_post_thumbnail_url($post->ID, 'large');
         }
-        
+
         // OG values (cascade: custom > seo > default)
         $og_title = $custom_og_title ?: $title;
         $og_description = $custom_og_desc ?: $description;
         $og_image = $custom_og_image ?: $image;
-        
+
         // Twitter values (cascade: custom > og > seo > default)
         $twitter_title = $custom_twitter_title ?: $og_title;
         $twitter_description = $custom_twitter_desc ?: $og_description;
         $twitter_image = $custom_twitter_image ?: $og_image;
-        
+
         // Robots
         if ($noindex === '1') $robots[0] = 'noindex';
         if ($nofollow === '1') $robots[1] = 'nofollow';
-        
+
     } elseif (is_category()) {
-        $title = single_cat_title('', false);
-        $description = category_description() ?: $title;
+        $cat_name = single_cat_title('', false);
+        $cat_desc = category_description();
+        $title = $cat_name . ' | ' . get_bloginfo('name');
+        $description = $cat_desc ?: sprintf(__('Artikelen over %s op %s', 'writgo-affiliate'), $cat_name, get_bloginfo('name'));
         $url = get_category_link(get_queried_object_id());
+        $og_title = $twitter_title = $title;
+        $og_description = $twitter_description = wp_strip_all_tags($description);
+    } elseif (is_tag()) {
+        $tag_name = single_tag_title('', false);
+        $title = $tag_name . ' | ' . get_bloginfo('name');
+        $description = tag_description() ?: sprintf(__('Artikelen met tag %s op %s', 'writgo-affiliate'), $tag_name, get_bloginfo('name'));
+        $url = get_tag_link(get_queried_object_id());
+        $og_title = $twitter_title = $title;
+        $og_description = $twitter_description = wp_strip_all_tags($description);
+    } elseif (is_author()) {
+        $author_name = get_the_author();
+        $title = $author_name . ' | ' . get_bloginfo('name');
+        $description = get_the_author_meta('description') ?: sprintf(__('Artikelen door %s', 'writgo-affiliate'), $author_name);
+        $url = get_author_posts_url(get_queried_object_id());
         $og_title = $twitter_title = $title;
         $og_description = $twitter_description = $description;
     } elseif (is_search()) {
-        $title = 'Zoekresultaten voor: ' . get_search_query();
+        $title = sprintf(__('Zoekresultaten voor: %s', 'writgo-affiliate'), get_search_query());
         $robots = array('noindex', 'follow');
+    } elseif (is_archive()) {
+        $title = get_the_archive_title() . ' | ' . get_bloginfo('name');
+        $description = get_the_archive_description() ?: get_bloginfo('description');
+        $og_title = $twitter_title = $title;
+        $og_description = $twitter_description = wp_strip_all_tags($description);
     }
     
     // Clean descriptions
@@ -361,12 +414,16 @@ function writgo_enhanced_social_meta() {
     <meta name="robots" content="<?php echo esc_attr(implode(', ', $robots)); ?>">
     
     <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="<?php echo is_singular() ? 'article' : 'website'; ?>">
+    <meta property="og:type" content="<?php echo (is_singular() && !is_front_page()) ? 'article' : 'website'; ?>">
     <meta property="og:url" content="<?php echo esc_url($url); ?>">
     <meta property="og:title" content="<?php echo esc_attr($og_title); ?>">
     <meta property="og:description" content="<?php echo esc_attr($og_description); ?>">
     <meta property="og:site_name" content="<?php echo esc_attr(get_bloginfo('name')); ?>">
-    <meta property="og:locale" content="nl_NL">
+    <?php
+    $locale_map = array('nl' => 'nl_NL', 'en' => 'en_US', 'de' => 'de_DE', 'fr' => 'fr_FR');
+    $current_locale = $locale_map[writgo_get_language()] ?? 'nl_NL';
+    ?>
+    <meta property="og:locale" content="<?php echo esc_attr($current_locale); ?>">
     <?php if ($og_image) : ?>
     <meta property="og:image" content="<?php echo esc_url($og_image); ?>">
     <meta property="og:image:width" content="1200">

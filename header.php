@@ -7,6 +7,7 @@
 </head>
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
+<a href="#main-content" class="wa-skip-link"><?php esc_html_e('Naar inhoud', 'writgo-affiliate'); ?></a>
 
 <header class="wa-header">
     <div class="wa-container-wide">

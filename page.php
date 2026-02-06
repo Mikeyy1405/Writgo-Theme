@@ -10,7 +10,7 @@ get_header();
 while (have_posts()) : the_post();
 ?>
 
-<main class="wa-page">
+<main id="main-content" class="wa-page">
     
     <header class="wa-archive-header">
         <div class="wa-container">

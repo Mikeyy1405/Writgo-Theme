@@ -88,6 +88,7 @@ body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;line
 img{max-width:100%;height:auto}
 .wa-header{position:sticky;top:0;z-index:100;background:var(--wa-bg);border-bottom:1px solid #e2e8f0;padding:.75rem 0}
 .wa-home-hero{position:relative;min-height:50vh;display:flex;align-items:center;background-size:cover;background-position:center}
+.wa-skip-link{position:absolute;top:-100%;left:50%;transform:translateX(-50%);background:var(--wa-primary);color:#fff;padding:.75rem 1.5rem;z-index:9999;border-radius:0 0 8px 8px;font-weight:600;text-decoration:none;transition:top .2s}.wa-skip-link:focus{top:0}
 </style>
     <?php
 }

@@ -13,7 +13,7 @@ $max_pages = $wp_query->max_num_pages;
 $current_page = max(1, get_query_var('paged'));
 ?>
 
-<main class="wa-archive">
+<main id="main-content" class="wa-archive">
     
     <header class="wa-archive-header">
         <div class="wa-container">

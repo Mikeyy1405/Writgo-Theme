@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Theme Constants
-define('WRITGO_VERSION', '9.3.0');
+define('WRITGO_VERSION', '9.4.0');
 define('WRITGO_DIR', get_template_directory());
 define('WRITGO_URI', get_template_directory_uri());
 

@@ -12,7 +12,7 @@ while (have_posts()) : the_post();
     $reading_time = writgo_get_reading_time();
 ?>
 
-<article id="post-<?php the_ID(); ?>" <?php post_class('wa-article'); ?>>
+<article id="main-content" <?php post_class('wa-article'); ?>>
     
     <!-- Full-Width Hero Section -->
     <?php 

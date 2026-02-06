@@ -8,7 +8,7 @@
 get_header();
 ?>
 
-<main class="wa-page">
+<main id="main-content" class="wa-page">
     
     <div class="wa-article-wrapper">
         <div class="wa-container">

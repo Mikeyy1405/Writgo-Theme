@@ -8,7 +8,7 @@
 get_header();
 ?>
 
-<main class="wa-archive">
+<main id="main-content" class="wa-archive">
     
     <header class="wa-archive-header">
         <div class="wa-container">

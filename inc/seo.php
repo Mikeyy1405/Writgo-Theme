@@ -878,3 +878,34 @@ function writgo_seo_post_class($classes) {
     }
     return $classes;
 }
+
+/**
+ * Add rel=prev/next for paginated archives
+ */
+add_action('wp_head', 'writgo_seo_pagination_links');
+function writgo_seo_pagination_links() {
+    if (defined('WPSEO_VERSION') || class_exists('RankMath')) {
+        return;
+    }
+
+    if (is_paged() || is_archive() || is_home()) {
+        global $wp_query;
+        $paged = max(1, get_query_var('paged'));
+        $max_pages = $wp_query->max_num_pages;
+
+        if ($paged > 1) {
+            $prev_page = $paged - 1;
+            if ($prev_page === 1) {
+                $prev_url = get_pagenum_link(1);
+            } else {
+                $prev_url = get_pagenum_link($prev_page);
+            }
+            echo '<link rel="prev" href="' . esc_url($prev_url) . '">' . "\n";
+        }
+
+        if ($paged < $max_pages) {
+            $next_url = get_pagenum_link($paged + 1);
+            echo '<link rel="next" href="' . esc_url($next_url) . '">' . "\n";
+        }
+    }
+}
