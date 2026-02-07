@@ -406,10 +406,9 @@ function writgo_get_reading_time($post_id = null) {
 // =============================================================================
 
 /**
- * Get related posts based on shared categories
+ * Output related posts based on shared categories
  *
- * @param  int $count Number of related posts to return.
- * @return WP_Query
+ * @param  int $count Number of related posts to show.
  */
 function writgo_related_posts($count = 3) {
     $post_id    = get_the_ID();
@@ -428,7 +427,30 @@ function writgo_related_posts($count = 3) {
         $args['category__in'] = $categories;
     }
 
-    return new WP_Query($args);
+    $query = new WP_Query($args);
+
+    if ($query->have_posts()) :
+        echo '<div class="wa-posts-grid">';
+        while ($query->have_posts()) : $query->the_post();
+            echo '<article class="wa-post-card">';
+            if (has_post_thumbnail()) {
+                echo '<a href="' . esc_url(get_permalink()) . '" class="wa-card-image-link">';
+                the_post_thumbnail('writgo-card', array('class' => 'wa-card-image'));
+                echo '</a>';
+            }
+            echo '<div class="wa-card-content">';
+            $cats = get_the_category();
+            if (!empty($cats)) {
+                echo '<a href="' . esc_url(get_category_link($cats[0]->term_id)) . '" class="wa-card-category">' . esc_html($cats[0]->name) . '</a>';
+            }
+            echo '<h3 class="wa-card-title"><a href="' . esc_url(get_permalink()) . '">' . get_the_title() . '</a></h3>';
+            echo '<time class="wa-card-date" datetime="' . get_the_date('c') . '">' . get_the_date('j M Y') . '</time>';
+            echo '</div>';
+            echo '</article>';
+        endwhile;
+        echo '</div>';
+    endif;
+    wp_reset_postdata();
 }
 
 // =============================================================================
