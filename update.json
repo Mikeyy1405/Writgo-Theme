@@ -1,17 +1,46 @@
 {
   "id": "writgo-affiliate-theme",
   "name": "Writgo Affiliate Theme",
-  "description": "Clean, lean affiliate & blog theme with Tailwind CSS. Mobile-first, SEO-optimized, fast.",
+  "description": "Clean, lean affiliate & blog theme with self-hosted Tailwind CSS. Mobile-first, SEO-optimized, fast.",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
   "author": "Writgo",
   "author_url": "https://writgo.nl",
   "theme_url": "https://writgo.nl",
-  "download_url": "https://writgo.nl/downloads/writgo-theme-10.1.0.zip",
+  "download_url": "https://writgo.nl/downloads/writgo-theme-10.3.0.zip",
   "homepage": "https://writgo.nl",
   "repository_url": "https://github.com/Mikeyy1405/Writgo-Theme",
   "versions": {
+    "10.3.0": {
+      "version": "10.3.0",
+      "download_url": "https://writgo.nl/downloads/writgo-theme-10.3.0.zip",
+      "requires": "6.0",
+      "requires_php": "7.4",
+      "date": "2026-02-07",
+      "tested": "6.7",
+      "changelog": "v10.3.0 - SEO Advanced Module:\n- Custom XML Sitemap (posts, pages, categories, tags)\n- Optimized robots.txt (AI crawlers, bad bot blocking)\n- llms.txt endpoint (AI/LLM crawler instructions)\n- IndexNow instant indexing (Bing, Yandex, Seznam, Naver)\n- Auto-ping Google & Bing on publish\n- 301/302 Redirect manager in admin\n- Pagination rel prev/next\n- Security headers (X-Content-Type-Options, X-Frame-Options)\n- Last-Modified headers for better crawling\n- Cleaned wp_head (removed generator, shortlinks, etc.)",
+      "sections": {
+        "description": "Clean affiliate & blog theme with self-hosted Tailwind CSS and advanced SEO",
+        "features": [
+          "Self-hosted Tailwind CSS (no CDN)",
+          "Custom XML Sitemap",
+          "Optimized robots.txt",
+          "llms.txt for AI crawlers",
+          "IndexNow instant indexing",
+          "301/302 Redirect manager",
+          "Built-in SEO (meta, schema, OG, Twitter)",
+          "Affiliate product blocks",
+          "Reading progress bar",
+          "Sticky table of contents",
+          "Performance optimized",
+          "Multilingual (NL/EN/DE/FR)",
+          "Auto-updater"
+        ],
+        "requires": "WordPress 6.0 or higher",
+        "requires_php": "PHP 7.4 or higher"
+      }
+    },
     "10.1.0": {
       "version": "10.1.0",
       "download_url": "https://writgo.nl/downloads/writgo-theme-10.1.0.zip",
@@ -19,26 +48,7 @@
       "requires_php": "7.4",
       "date": "2026-02-07",
       "tested": "6.7",
-      "changelog": "v10.1.0 - Tailwind CSS Upgrade:\n- Tailwind CSS via CDN voor moderne, responsive styling\n- Alle templates herschreven met Tailwind utility classes\n- Glassmorphism header met backdrop-blur\n- Gradient hero sections\n- Verbeterde card components\n- Mobile menu als accordeon (ipv overlay)\n- Search overlay met backdrop blur\n- Minimale custom CSS (alleen WP-specifieke componenten)\n- JavaScript aangepast voor nieuwe template structuur",
-      "sections": {
-        "description": "Clean affiliate & blog theme with Tailwind CSS for modern, beautiful design",
-        "features": [
-          "Tailwind CSS via CDN",
-          "Glassmorphism sticky header",
-          "Gradient hero sections",
-          "Mobile-first responsive design",
-          "Built-in SEO (meta, schema, OG, sitemap)",
-          "Affiliate product blocks",
-          "Reading progress bar",
-          "Sticky table of contents",
-          "Search overlay with backdrop blur",
-          "Scroll to top",
-          "Multilingual (NL/EN/DE/FR)",
-          "Auto-updater"
-        ],
-        "requires": "WordPress 6.0 or higher",
-        "requires_php": "PHP 7.4 or higher"
-      }
+      "changelog": "v10.1.0 - Tailwind CSS Upgrade"
     },
     "10.0.0": {
       "version": "10.0.0",
@@ -48,20 +58,11 @@
       "date": "2026-02-07",
       "tested": "6.7",
       "changelog": "v10.0.0 - Complete Theme Rewrite"
-    },
-    "9.4.0": {
-      "version": "9.4.0",
-      "download_url": "https://writgo.nl/downloads/writgo-theme-9.4.0.zip",
-      "requires": "6.0",
-      "requires_php": "7.4",
-      "date": "2026-02-06",
-      "tested": "6.7",
-      "changelog": "SEO Improvements v9.4.0"
     }
   },
-  "current": "10.1.0",
-  "stable": "10.1.0",
-  "latest": "10.1.0",
+  "current": "10.3.0",
+  "stable": "10.3.0",
+  "latest": "10.3.0",
   "screenshots": {
     "featured": "https://raw.githubusercontent.com/Mikeyy1405/Writgo-Theme/main/screenshot.png"
   },

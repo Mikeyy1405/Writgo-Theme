@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 // CONSTANTS
 // =============================================================================
 
-define('WRITGO_VERSION', '10.1.0');
+define('WRITGO_VERSION', '10.3.0');
 define('WRITGO_DIR', get_template_directory());
 define('WRITGO_URI', get_template_directory_uri());
 
@@ -250,65 +250,53 @@ function writgo_widgets_init() {
 
 add_action('wp_enqueue_scripts', 'writgo_enqueue_assets');
 function writgo_enqueue_assets() {
-    // Tailwind CSS CDN (Play CDN)
-    wp_enqueue_script('tailwindcss', 'https://cdn.tailwindcss.com', array(), null, false);
+    // Tailwind utility CSS (self-hosted, production build)
+    $tw_file = WRITGO_DIR . '/assets/css/tailwind-utilities.css';
+    $tw_ver  = file_exists($tw_file) ? filemtime($tw_file) : WRITGO_VERSION;
+    wp_enqueue_style('writgo-tailwind', WRITGO_URI . '/assets/css/tailwind-utilities.css', array(), $tw_ver);
 
-    // Google Fonts: Inter
-    wp_enqueue_style(
-        'writgo-google-fonts',
-        'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
-        array(),
-        null
-    );
-
-    // Main stylesheet
+    // Main stylesheet (custom components)
     $css_file = WRITGO_DIR . '/assets/css/main.css';
     $css_ver  = file_exists($css_file) ? filemtime($css_file) : WRITGO_VERSION;
-    wp_enqueue_style('writgo-main', WRITGO_URI . '/assets/css/main.css', array(), $css_ver);
+    wp_enqueue_style('writgo-main', WRITGO_URI . '/assets/css/main.css', array('writgo-tailwind'), $css_ver);
 
-    // Main script
-    $js_file = WRITGO_DIR . '/assets/js/main.js';
+    // Main script (minified, deferred)
+    $js_ext  = file_exists(WRITGO_DIR . '/assets/js/main.min.js') ? 'main.min.js' : 'main.js';
+    $js_file = WRITGO_DIR . '/assets/js/' . $js_ext;
     $js_ver  = file_exists($js_file) ? filemtime($js_file) : WRITGO_VERSION;
-    wp_enqueue_script('writgo-main', WRITGO_URI . '/assets/js/main.js', array(), $js_ver, true);
+    wp_enqueue_script('writgo-main', WRITGO_URI . '/assets/js/' . $js_ext, array(), $js_ver, true);
 
-    // TOC script on singular posts only
+    // TOC script on singular posts only (minified, deferred)
     if (is_singular('post')) {
-        $toc_file = WRITGO_DIR . '/assets/js/toc.js';
+        $toc_ext  = file_exists(WRITGO_DIR . '/assets/js/toc.min.js') ? 'toc.min.js' : 'toc.js';
+        $toc_file = WRITGO_DIR . '/assets/js/' . $toc_ext;
         $toc_ver  = file_exists($toc_file) ? filemtime($toc_file) : WRITGO_VERSION;
-        wp_enqueue_script('writgo-toc', WRITGO_URI . '/assets/js/toc.js', array(), $toc_ver, true);
+        wp_enqueue_script('writgo-toc', WRITGO_URI . '/assets/js/' . $toc_ext, array(), $toc_ver, true);
     }
 }
 
 /**
- * Tailwind CSS configuration via inline script
+ * Add defer attribute to theme scripts for non-blocking loading
  */
-add_action('wp_head', 'writgo_tailwind_config', 2);
-function writgo_tailwind_config() {
+add_filter('script_loader_tag', 'writgo_defer_scripts', 10, 3);
+function writgo_defer_scripts($tag, $handle, $src) {
+    $defer_handles = array('writgo-main', 'writgo-toc');
+    if (in_array($handle, $defer_handles)) {
+        return str_replace(' src=', ' defer src=', $tag);
+    }
+    return $tag;
+}
+
+/**
+ * Preload Google Fonts (non-blocking) and add font-display: swap
+ */
+add_action('wp_head', 'writgo_preload_fonts', 2);
+function writgo_preload_fonts() {
     ?>
-    <script>
-    if (typeof tailwind !== 'undefined') {
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    }
-    </script>
-    <style type="text/tailwindcss">
-    @layer utilities {
-        .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
-    }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
     <?php
 }
 
@@ -344,21 +332,18 @@ function writgo_remove_jquery_migrate($scripts) {
 }
 
 /**
- * Add preconnect for Google Fonts and resource hints
+ * Clean up WordPress head for performance
  */
-add_filter('wp_resource_hints', 'writgo_resource_hints', 10, 2);
-function writgo_resource_hints($urls, $relation_type) {
-    if ($relation_type === 'preconnect') {
-        $urls[] = array(
-            'href'        => 'https://fonts.googleapis.com',
-            'crossorigin' => '',
-        );
-        $urls[] = array(
-            'href'        => 'https://fonts.gstatic.com',
-            'crossorigin' => 'anonymous',
-        );
-    }
-    return $urls;
+add_action('init', 'writgo_cleanup_head');
+function writgo_cleanup_head() {
+    remove_action('wp_head', 'rsd_link');
+    remove_action('wp_head', 'wlwmanifest_link');
+    remove_action('wp_head', 'wp_generator');
+    remove_action('wp_head', 'wp_shortlink_wp_head');
+    remove_action('wp_head', 'rest_output_link_wp_head');
+    remove_action('wp_head', 'wp_oembed_add_discovery_links');
+    remove_action('wp_head', 'wp_oembed_add_host_js');
+    remove_action('wp_head', 'feed_links_extra', 3);
 }
 
 /**
@@ -926,6 +911,63 @@ function writgo_output_dynamic_css() {
 }
 
 // =============================================================================
+// IMAGE OPTIMIZATION
+// =============================================================================
+
+/**
+ * Add fetchpriority="high" to LCP images and ensure lazy loading
+ */
+add_filter('wp_get_attachment_image_attributes', 'writgo_optimize_image_attrs', 10, 3);
+function writgo_optimize_image_attrs($attr, $attachment, $size) {
+    // Add loading=lazy by default (WordPress 5.5+ does this, but ensure it)
+    if (!isset($attr['loading'])) {
+        $attr['loading'] = 'lazy';
+    }
+    // Add decoding=async for non-blocking image decode
+    if (!isset($attr['decoding'])) {
+        $attr['decoding'] = 'async';
+    }
+    return $attr;
+}
+
+/**
+ * Disable WordPress default scaling of big images (let the defined sizes handle it)
+ */
+add_filter('big_image_size_threshold', '__return_false');
+
+/**
+ * Remove default WordPress image size attributes for responsive images
+ * WordPress adds width/height which can conflict with object-fit
+ */
+add_filter('wp_calculate_image_sizes', 'writgo_image_sizes', 10, 5);
+function writgo_image_sizes($sizes, $size, $image_src, $image_meta, $attachment_id) {
+    // Optimize sizes attribute for responsive images
+    if (is_array($size)) {
+        $width = $size[0];
+    } else {
+        $width = 1200;
+    }
+    return '(max-width: ' . $width . 'px) 100vw, ' . $width . 'px';
+}
+
+// =============================================================================
+// BROWSER CACHING & SECURITY HEADERS
+// =============================================================================
+
+/**
+ * Add performance and security headers
+ */
+add_action('send_headers', 'writgo_performance_headers');
+function writgo_performance_headers() {
+    if (is_admin()) return;
+
+    // Security headers
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+}
+
+// =============================================================================
 // INCLUDE FILES
 // =============================================================================
 
@@ -942,4 +984,9 @@ if (file_exists(WRITGO_DIR . '/inc/theme-updater.php')) {
 // Affiliate blocks: product box & comparison table shortcodes
 if (file_exists(WRITGO_DIR . '/inc/affiliate-blocks.php')) {
     require_once WRITGO_DIR . '/inc/affiliate-blocks.php';
+}
+
+// Advanced SEO: XML Sitemap, Robots.txt, llms.txt, IndexNow, Redirects
+if (file_exists(WRITGO_DIR . '/inc/seo-advanced.php')) {
+    require_once WRITGO_DIR . '/inc/seo-advanced.php';
 }
