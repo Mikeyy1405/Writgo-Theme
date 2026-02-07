@@ -1,17 +1,42 @@
 {
   "id": "writgo-affiliate-theme",
   "name": "Writgo Affiliate Theme",
-  "description": "Professional affiliate theme with built-in SEO analysis, focus keywords, and RankMath-like scoring.",
+  "description": "Clean, lean affiliate & blog theme. Mobile-first, SEO-optimized, fast.",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
   "author": "Writgo",
   "author_url": "https://writgo.nl",
   "theme_url": "https://writgo.nl",
-  "download_url": "https://writgo.nl/downloads/writgo-theme-9.4.0.zip",
+  "download_url": "https://writgo.nl/downloads/writgo-theme-10.0.0.zip",
   "homepage": "https://writgo.nl",
   "repository_url": "https://github.com/Mikeyy1405/Writgo-Theme",
   "versions": {
+    "10.0.0": {
+      "version": "10.0.0",
+      "download_url": "https://writgo.nl/downloads/writgo-theme-10.0.0.zip",
+      "requires": "6.0",
+      "requires_php": "7.4",
+      "date": "2026-02-07",
+      "tested": "6.7",
+      "changelog": "v10.0.0 - Complete Theme Rewrite:\n- Removed all bloat: popups, CTA boxes, dashboard, shortcodes, content score, legal pages, meta boxes\n- 15.000+ regels verwijderd, 6.500 regels clean code\n- New all-in-one SEO module (meta tags, schema, OG, sitemap, breadcrumbs)\n- New affiliate product blocks (Gutenberg)\n- Clean header with search overlay\n- Reading progress bar\n- Sticky TOC\n- Scroll-to-top button\n- Trust bar in footer\n- Mobile-first responsive design\n- Performance optimized: minimal CSS/JS",
+      "sections": {
+        "description": "Clean affiliate & blog theme focused on what matters: SEO, speed, conversions",
+        "features": [
+          "Mobile-first responsive design",
+          "Built-in SEO (meta, schema, OG, sitemap)",
+          "Affiliate product blocks",
+          "Reading progress bar",
+          "Sticky table of contents",
+          "Search overlay",
+          "Scroll to top",
+          "Multilingual (NL/EN/DE/FR)",
+          "Auto-updater"
+        ],
+        "requires": "WordPress 6.0 or higher",
+        "requires_php": "PHP 7.4 or higher"
+      }
+    },
     "9.4.0": {
       "version": "9.4.0",
       "download_url": "https://writgo.nl/downloads/writgo-theme-9.4.0.zip",
@@ -19,24 +44,7 @@
       "requires_php": "7.4",
       "date": "2026-02-06",
       "tested": "6.7",
-      "changelog": "SEO Improvements v9.4.0:\n- Fixed: Homepage og:type shows 'website' instead of 'article' on static front pages\n- Fixed: Homepage meta description and og:title now use site name + tagline\n- Fixed: Dynamic og:locale based on theme language (nl/en/de/fr)\n- Added: Skip-to-content accessibility link in header\n- Added: main-content landmark IDs on all page templates\n- Added: rel=prev/next pagination links for archives\n- Added: Tag, author and generic archive meta descriptions\n- Added: Skip-link critical CSS for accessibility\n- Improved: Category/archive descriptions now translatable",
-      "sections": {
-        "description": "Professional affiliate theme optimized for SEO and conversions",
-        "features": [
-          "Responsive design",
-          "SEO optimization",
-          "Affiliate features",
-          "Performance optimized",
-          "Security hardened",
-          "Multilingual support",
-          "Custom widgets",
-          "Accessibility skip links",
-          "Dynamic Open Graph locale",
-          "Pagination SEO links"
-        ],
-        "requires": "WordPress 6.0 or higher",
-        "requires_php": "PHP 7.4 or higher"
-      }
+      "changelog": "SEO Improvements v9.4.0"
     },
     "9.3.0": {
       "version": "9.3.0",
@@ -45,33 +53,12 @@
       "requires_php": "7.4",
       "date": "2026-02-03",
       "tested": "6.7",
-      "changelog": "Production Release - Security hardening (XSS, CSRF, input validation) + Performance optimization (lazy loading, query optimization, caching)",
-      "sections": {
-        "description": "Professional affiliate theme optimized for SEO and conversions",
-        "features": [
-          "Responsive design",
-          "SEO optimization",
-          "Affiliate features",
-          "Performance optimized",
-          "Security hardened",
-          "Multilingual support",
-          "Custom widgets"
-        ],
-        "requires": "WordPress 6.0 or higher",
-        "requires_php": "PHP 7.4 or higher"
-      }
-    },
-    "9.2.0": {
-      "version": "9.2.0",
-      "download_url": "https://github.com/Mikeyy1405/Writgo-Theme/releases/download/v9.2.0/writgo-theme-9.2.0.zip",
-      "requires": "5.9",
-      "requires_php": "7.4",
-      "date": "2025-12-15"
+      "changelog": "Production Release - Security + Performance"
     }
   },
-  "current": "9.4.0",
-  "stable": "9.4.0",
-  "latest": "9.4.0",
+  "current": "10.0.0",
+  "stable": "10.0.0",
+  "latest": "10.0.0",
   "screenshots": {
     "featured": "https://raw.githubusercontent.com/Mikeyy1405/Writgo-Theme/main/screenshot.png"
   },
