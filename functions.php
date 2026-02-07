@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 // CONSTANTS
 // =============================================================================
 
-define('WRITGO_VERSION', '10.0.0');
+define('WRITGO_VERSION', '10.1.0');
 define('WRITGO_DIR', get_template_directory());
 define('WRITGO_URI', get_template_directory_uri());
 
@@ -250,6 +250,9 @@ function writgo_widgets_init() {
 
 add_action('wp_enqueue_scripts', 'writgo_enqueue_assets');
 function writgo_enqueue_assets() {
+    // Tailwind CSS CDN (Play CDN)
+    wp_enqueue_script('tailwindcss', 'https://cdn.tailwindcss.com', array(), null, false);
+
     // Google Fonts: Inter
     wp_enqueue_style(
         'writgo-google-fonts',
@@ -274,6 +277,39 @@ function writgo_enqueue_assets() {
         $toc_ver  = file_exists($toc_file) ? filemtime($toc_file) : WRITGO_VERSION;
         wp_enqueue_script('writgo-toc', WRITGO_URI . '/assets/js/toc.js', array(), $toc_ver, true);
     }
+}
+
+/**
+ * Tailwind CSS configuration via inline script
+ */
+add_action('wp_head', 'writgo_tailwind_config', 2);
+function writgo_tailwind_config() {
+    ?>
+    <script>
+    if (typeof tailwind !== 'undefined') {
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    }
+    </script>
+    <style type="text/tailwindcss">
+    @layer utilities {
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+    }
+    </style>
+    <?php
 }
 
 // =============================================================================

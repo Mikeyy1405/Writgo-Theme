@@ -1,34 +1,37 @@
 {
   "id": "writgo-affiliate-theme",
   "name": "Writgo Affiliate Theme",
-  "description": "Clean, lean affiliate & blog theme. Mobile-first, SEO-optimized, fast.",
+  "description": "Clean, lean affiliate & blog theme with Tailwind CSS. Mobile-first, SEO-optimized, fast.",
   "requires": "6.0",
   "tested": "6.7",
   "requires_php": "7.4",
   "author": "Writgo",
   "author_url": "https://writgo.nl",
   "theme_url": "https://writgo.nl",
-  "download_url": "https://writgo.nl/downloads/writgo-theme-10.0.0.zip",
+  "download_url": "https://writgo.nl/downloads/writgo-theme-10.1.0.zip",
   "homepage": "https://writgo.nl",
   "repository_url": "https://github.com/Mikeyy1405/Writgo-Theme",
   "versions": {
-    "10.0.0": {
-      "version": "10.0.0",
-      "download_url": "https://writgo.nl/downloads/writgo-theme-10.0.0.zip",
+    "10.1.0": {
+      "version": "10.1.0",
+      "download_url": "https://writgo.nl/downloads/writgo-theme-10.1.0.zip",
       "requires": "6.0",
       "requires_php": "7.4",
       "date": "2026-02-07",
       "tested": "6.7",
-      "changelog": "v10.0.0 - Complete Theme Rewrite:\n- Removed all bloat: popups, CTA boxes, dashboard, shortcodes, content score, legal pages, meta boxes\n- 15.000+ regels verwijderd, 6.500 regels clean code\n- New all-in-one SEO module (meta tags, schema, OG, sitemap, breadcrumbs)\n- New affiliate product blocks (Gutenberg)\n- Clean header with search overlay\n- Reading progress bar\n- Sticky TOC\n- Scroll-to-top button\n- Trust bar in footer\n- Mobile-first responsive design\n- Performance optimized: minimal CSS/JS",
+      "changelog": "v10.1.0 - Tailwind CSS Upgrade:\n- Tailwind CSS via CDN voor moderne, responsive styling\n- Alle templates herschreven met Tailwind utility classes\n- Glassmorphism header met backdrop-blur\n- Gradient hero sections\n- Verbeterde card components\n- Mobile menu als accordeon (ipv overlay)\n- Search overlay met backdrop blur\n- Minimale custom CSS (alleen WP-specifieke componenten)\n- JavaScript aangepast voor nieuwe template structuur",
       "sections": {
-        "description": "Clean affiliate & blog theme focused on what matters: SEO, speed, conversions",
+        "description": "Clean affiliate & blog theme with Tailwind CSS for modern, beautiful design",
         "features": [
+          "Tailwind CSS via CDN",
+          "Glassmorphism sticky header",
+          "Gradient hero sections",
           "Mobile-first responsive design",
           "Built-in SEO (meta, schema, OG, sitemap)",
           "Affiliate product blocks",
           "Reading progress bar",
           "Sticky table of contents",
-          "Search overlay",
+          "Search overlay with backdrop blur",
           "Scroll to top",
           "Multilingual (NL/EN/DE/FR)",
           "Auto-updater"
@@ -36,6 +39,15 @@
         "requires": "WordPress 6.0 or higher",
         "requires_php": "PHP 7.4 or higher"
       }
+    },
+    "10.0.0": {
+      "version": "10.0.0",
+      "download_url": "https://writgo.nl/downloads/writgo-theme-10.0.0.zip",
+      "requires": "6.0",
+      "requires_php": "7.4",
+      "date": "2026-02-07",
+      "tested": "6.7",
+      "changelog": "v10.0.0 - Complete Theme Rewrite"
     },
     "9.4.0": {
       "version": "9.4.0",
@@ -45,20 +57,11 @@
       "date": "2026-02-06",
       "tested": "6.7",
       "changelog": "SEO Improvements v9.4.0"
-    },
-    "9.3.0": {
-      "version": "9.3.0",
-      "download_url": "https://github.com/Mikeyy1405/Writgo-Theme/releases/download/v9.3.0-production/writgo-theme-9.3.0.zip",
-      "requires": "6.0",
-      "requires_php": "7.4",
-      "date": "2026-02-03",
-      "tested": "6.7",
-      "changelog": "Production Release - Security + Performance"
     }
   },
-  "current": "10.0.0",
-  "stable": "10.0.0",
-  "latest": "10.0.0",
+  "current": "10.1.0",
+  "stable": "10.1.0",
+  "latest": "10.1.0",
   "screenshots": {
     "featured": "https://raw.githubusercontent.com/Mikeyy1405/Writgo-Theme/main/screenshot.png"
   },

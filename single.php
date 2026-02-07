@@ -1,6 +1,6 @@
 <?php
 /**
- * Single Post Template - Hero Layout met Sticky TOC
+ * Single Post Template
  *
  * @package Writgo_Affiliate
  */
@@ -12,82 +12,70 @@ while (have_posts()) : the_post();
     $reading_time = writgo_get_reading_time();
 ?>
 
-<article id="main-content" <?php post_class('wa-article'); ?>>
-    
-    <!-- Full-Width Hero Section -->
-    <?php 
-    $hero_overlay = get_theme_mod('writgo_article_hero_overlay', '');
-    $hero_text_color = get_theme_mod('writgo_article_hero_text_color', '#ffffff');
+<article id="main-content" <?php post_class(); ?>>
+
+    <!-- Hero Section -->
+    <?php
     $hero_style = '';
-    if ($hero_text_color && $hero_text_color !== '#ffffff') {
-        $hero_style .= '--hero-text-color: ' . esc_attr($hero_text_color) . ';';
-    }
+    $hero_text_color = get_theme_mod('writgo_article_hero_text_color', '#ffffff');
     ?>
-    <header class="wa-hero-section" <?php echo $hero_style ? 'style="' . $hero_style . '"' : ''; ?>>
+    <header class="relative overflow-hidden bg-gray-900 <?php echo has_post_thumbnail() ? 'min-h-[400px] lg:min-h-[500px]' : 'py-16 lg:py-24'; ?>">
         <?php if (has_post_thumbnail()) : ?>
-            <div class="wa-hero-background">
-                <?php the_post_thumbnail('writgo-hero', array('class' => 'wa-hero-image')); ?>
-                <div class="wa-hero-gradient" <?php echo $hero_overlay ? 'style="background: ' . esc_attr($hero_overlay) . ';"' : ''; ?>></div>
+            <div class="absolute inset-0">
+                <?php the_post_thumbnail('writgo-hero', array('class' => 'w-full h-full object-cover')); ?>
+                <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-gray-900/30"></div>
             </div>
         <?php else : ?>
-            <div class="wa-hero-background wa-hero-no-image">
-                <div class="wa-hero-gradient" <?php echo $hero_overlay ? 'style="background: ' . esc_attr($hero_overlay) . ';"' : ''; ?>></div>
-            </div>
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"></div>
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_50%)]"></div>
         <?php endif; ?>
-        
-        <div class="wa-hero-content">
-            <div class="wa-container-wide">
+
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 flex items-end min-h-[400px] lg:min-h-[500px]">
+            <div class="w-full max-w-3xl">
                 <!-- Breadcrumbs -->
-                <nav class="wa-breadcrumbs" aria-label="Breadcrumbs">
-                    <a href="<?php echo esc_url(home_url('/')); ?>"><?php writgo_te('home'); ?></a>
-                    <span class="wa-breadcrumb-sep">›</span>
+                <nav class="flex items-center gap-2 text-sm text-white/60 mb-5 flex-wrap" aria-label="Breadcrumbs">
+                    <a href="<?php echo esc_url(home_url('/')); ?>" class="hover:text-white transition-colors"><?php writgo_te('home'); ?></a>
+                    <span class="text-white/30">/</span>
                     <?php if (!empty($categories)) : ?>
-                        <a href="<?php echo esc_url(get_category_link($categories[0]->term_id)); ?>">
-                            <?php echo esc_html($categories[0]->name); ?>
-                        </a>
-                        <span class="wa-breadcrumb-sep">›</span>
+                        <a href="<?php echo esc_url(get_category_link($categories[0]->term_id)); ?>" class="hover:text-white transition-colors"><?php echo esc_html($categories[0]->name); ?></a>
+                        <span class="text-white/30">/</span>
                     <?php endif; ?>
-                    <span class="wa-breadcrumb-current"><?php the_title(); ?></span>
+                    <span class="text-white/80 truncate"><?php the_title(); ?></span>
                 </nav>
-                
-                <!-- Badge & Category -->
-                <div class="wa-hero-meta-top">
-                    <span class="wa-badge"><?php writgo_te('blog'); ?></span>
-                    <?php if (!empty($categories)) : ?>
-                        <a href="<?php echo esc_url(get_category_link($categories[0]->term_id)); ?>" class="wa-hero-category">
-                            <?php echo esc_html($categories[0]->name); ?>
-                        </a>
-                    <?php endif; ?>
-                </div>
-                
-                <!-- Title -->
-                <h1 class="wa-hero-title"><?php the_title(); ?></h1>
-                
-                <!-- Excerpt if available -->
-                <?php if (has_excerpt()) : ?>
-                    <p class="wa-hero-excerpt"><?php echo get_the_excerpt(); ?></p>
+
+                <!-- Category -->
+                <?php if (!empty($categories)) : ?>
+                    <a href="<?php echo esc_url(get_category_link($categories[0]->term_id)); ?>" class="inline-block px-3 py-1 text-xs font-semibold bg-blue-500/90 text-white rounded-full mb-4 hover:bg-blue-500 transition-colors">
+                        <?php echo esc_html($categories[0]->name); ?>
+                    </a>
                 <?php endif; ?>
-                
-                <!-- Author & Date -->
-                <div class="wa-hero-meta-bottom">
-                    <div class="wa-author-info">
-                        <?php echo get_avatar(get_the_author_meta('ID'), 44, '', '', array('class' => 'wa-author-avatar')); ?>
-                        <div class="wa-author-details">
-                            <span class="wa-author-name"><?php the_author(); ?></span>
-                            <time class="wa-post-date" datetime="<?php echo get_the_date('c'); ?>">
+
+                <!-- Title -->
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-4 tracking-tight"><?php the_title(); ?></h1>
+
+                <?php if (has_excerpt()) : ?>
+                    <p class="text-lg text-white/80 mb-6 leading-relaxed max-w-2xl"><?php echo get_the_excerpt(); ?></p>
+                <?php endif; ?>
+
+                <!-- Author & Meta -->
+                <div class="flex flex-wrap items-center gap-4 text-sm">
+                    <div class="flex items-center gap-3">
+                        <?php echo get_avatar(get_the_author_meta('ID'), 44, '', '', array('class' => 'w-10 h-10 rounded-full ring-2 ring-white/30')); ?>
+                        <div>
+                            <span class="block text-white font-medium"><?php the_author(); ?></span>
+                            <time class="text-white/60" datetime="<?php echo get_the_date('c'); ?>">
                                 <?php echo get_the_date('j F Y'); ?>
                                 <?php if (get_the_modified_date() !== get_the_date()) : ?>
-                                    · <?php writgo_te('updated'); ?> <?php echo get_the_modified_date('j F Y'); ?>
+                                    &middot; <?php writgo_te('updated'); ?> <?php echo get_the_modified_date('j F Y'); ?>
                                 <?php endif; ?>
                             </time>
                         </div>
                     </div>
-                    
+
                     <?php if ($reading_time) : ?>
-                        <span class="wa-reading-time">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M12 6v6l4 2"/>
+                        <span class="flex items-center gap-1.5 text-white/60 bg-white/10 px-3 py-1 rounded-full">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
                             </svg>
                             <?php echo esc_html(writgo_t('minutes_read', $reading_time)); ?>
                         </span>
@@ -96,97 +84,106 @@ while (have_posts()) : the_post();
             </div>
         </div>
     </header>
-    
-    <!-- Content Section with Sidebar TOC -->
-    <div class="wa-article-wrapper">
-        <div class="wa-container-wide">
-            <div class="wa-article-grid">
-                
+
+    <!-- Content Section -->
+    <div class="bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
+            <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-10 lg:gap-14">
+
                 <!-- Main Content -->
-                <main class="wa-article-content">
-                    
-                    <!-- Mobile TOC (collapsible) -->
-                    <div class="wa-toc-mobile" id="toc-mobile">
-                        <button class="wa-toc-toggle" aria-expanded="false">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M4 6h16M4 12h16M4 18h10"/>
-                            </svg>
-                            <span><?php writgo_te('table_of_contents'); ?></span>
-                            <svg class="wa-toc-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <main class="min-w-0">
+
+                    <!-- Mobile TOC -->
+                    <div class="lg:hidden mb-8 bg-gray-50 rounded-xl border border-gray-200" id="toc-mobile">
+                        <button class="w-full flex items-center justify-between p-4 text-sm font-semibold text-gray-700 wa-toc-toggle" aria-expanded="false">
+                            <span class="flex items-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 6h16M4 12h16M4 18h10"/>
+                                </svg>
+                                <?php writgo_te('table_of_contents'); ?>
+                            </span>
+                            <svg class="wa-toc-chevron w-5 h-5 text-gray-400 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M6 9l6 6 6-6"/>
                             </svg>
                         </button>
-                        <nav class="wa-toc-mobile-list" id="toc-mobile-list"></nav>
+                        <nav class="hidden px-4 pb-4" id="toc-mobile-list"></nav>
                     </div>
-                    
+
                     <!-- Affiliate Disclosure -->
                     <?php if (get_theme_mod('writgo_show_disclosure', true)) : ?>
-                        <div class="wa-disclosure">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M12 16v-4M12 8h.01"/>
+                        <div class="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100 mb-8 text-sm text-blue-800">
+                            <svg class="flex-shrink-0 mt-0.5 text-blue-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
                             </svg>
-                            <?php echo wp_kses_post(writgo_get_mod('writgo_disclosure_text', 'affiliate_disclosure', 'Dit artikel kan affiliate links bevatten. Bij aankoop via deze links ontvangen wij een commissie.')); ?>
+                            <span><?php echo wp_kses_post(writgo_get_mod('writgo_disclosure_text', 'affiliate_disclosure', 'Dit artikel kan affiliate links bevatten. Bij aankoop via deze links ontvangen wij een commissie.')); ?></span>
                         </div>
                     <?php endif; ?>
-                    
+
                     <!-- The Content -->
-                    <div class="wa-content entry-content" id="article-content">
+                    <div class="wa-prose" id="article-content">
                         <?php the_content(); ?>
                     </div>
-                    
+
                     <!-- Tags -->
                     <?php if (has_tag()) : ?>
-                        <div class="wa-tags">
-                            <span class="wa-tags-label"><?php writgo_te('tags'); ?></span>
-                            <?php the_tags('', '', ''); ?>
+                        <div class="flex flex-wrap items-center gap-2 mt-10 pt-8 border-t border-gray-100">
+                            <span class="text-sm font-medium text-gray-500"><?php writgo_te('tags'); ?>:</span>
+                            <?php
+                            $tags = get_the_tags();
+                            if ($tags) :
+                                foreach ($tags as $tag) :
+                            ?>
+                                <a href="<?php echo esc_url(get_tag_link($tag->term_id)); ?>" class="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                    <?php echo esc_html($tag->name); ?>
+                                </a>
+                            <?php
+                                endforeach;
+                            endif;
+                            ?>
                         </div>
                     <?php endif; ?>
-                    
+
                     <!-- Author Box -->
                     <?php echo writgo_author_box(); ?>
-                    
+
                 </main>
-                
-                <!-- Sticky Sidebar TOC -->
-                <aside class="wa-sidebar-toc" id="sidebar-toc">
-                    <div class="wa-toc-sticky">
-                        <div class="wa-toc-card">
-                            <h3 class="wa-toc-heading">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+                <!-- Sidebar TOC -->
+                <aside class="hidden lg:block" id="sidebar-toc">
+                    <div class="sticky top-24">
+                        <div class="bg-gray-50 rounded-xl border border-gray-200 p-5">
+                            <h3 class="flex items-center gap-2 text-sm font-bold text-gray-900 mb-4">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M4 6h16M4 12h16M4 18h10"/>
                                 </svg>
                                 <?php writgo_te('table_of_contents'); ?>
                             </h3>
-                            <nav class="wa-toc-list" id="toc-sidebar-list">
-                                <!-- Generated by JavaScript -->
-                            </nav>
-                            
-                            <!-- Progress indicator -->
-                            <div class="wa-toc-progress">
-                                <div class="wa-toc-progress-bar" id="reading-progress"></div>
+                            <nav id="toc-sidebar-list"></nav>
+
+                            <!-- Progress -->
+                            <div class="mt-4 h-1 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-[width] duration-100" id="reading-progress" style="width:0%"></div>
                             </div>
                         </div>
-                        
-                        <!-- Widgets Below TOC -->
+
                         <?php if (is_active_sidebar('below-toc')) : ?>
-                        <div class="wa-below-toc-widgets">
+                        <div class="mt-6">
                             <?php dynamic_sidebar('below-toc'); ?>
                         </div>
                         <?php endif; ?>
                     </div>
                 </aside>
-                
+
             </div>
         </div>
     </div>
-    
+
 </article>
 
 <!-- Related Posts -->
-<section class="wa-related-section">
-    <div class="wa-container-wide">
-        <h2 class="wa-section-title"><?php writgo_te('related_articles'); ?></h2>
+<section class="py-12 lg:py-16 bg-gray-50 border-t border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-8"><?php writgo_te('related_articles'); ?></h2>
         <?php writgo_related_posts(3); ?>
     </div>
 </section>

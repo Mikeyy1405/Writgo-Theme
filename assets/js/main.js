@@ -1,6 +1,6 @@
 /**
  * Writgo Theme - Main JavaScript
- * v10.0.0
+ * v10.1.0
  *
  * @package Writgo_Affiliate
  */
@@ -13,19 +13,19 @@
      */
     function initMobileMenu() {
         const menuToggle = document.querySelector('.wa-menu-toggle');
-        const nav = document.getElementById('site-nav');
+        const mobileMenu = document.getElementById('mobile-menu');
 
-        if (!menuToggle || !nav) return;
+        if (!menuToggle || !mobileMenu) return;
 
         const iconMenu = menuToggle.querySelector('.wa-icon-menu');
         const iconClose = menuToggle.querySelector('.wa-icon-close');
 
         function toggleMenu(open) {
             menuToggle.setAttribute('aria-expanded', open);
-            nav.classList.toggle('active', open);
+            mobileMenu.classList.toggle('hidden', !open);
             document.body.classList.toggle('menu-open', open);
-            if (iconMenu) iconMenu.style.display = open ? 'none' : '';
-            if (iconClose) iconClose.style.display = open ? '' : 'none';
+            if (iconMenu) iconMenu.classList.toggle('hidden', open);
+            if (iconClose) iconClose.classList.toggle('hidden', !open);
         }
 
         menuToggle.addEventListener('click', () => {
@@ -34,14 +34,14 @@
         });
 
         // Close on link click
-        nav.querySelectorAll('a').forEach(link => {
+        mobileMenu.querySelectorAll('a').forEach(link => {
             link.addEventListener('click', () => toggleMenu(false));
         });
 
         // Close on outside click
         document.addEventListener('click', (e) => {
-            if (nav.classList.contains('active') &&
-                !nav.contains(e.target) &&
+            if (!mobileMenu.classList.contains('hidden') &&
+                !mobileMenu.contains(e.target) &&
                 !menuToggle.contains(e.target)) {
                 toggleMenu(false);
             }
@@ -49,7 +49,7 @@
 
         // Close on Escape
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && nav.classList.contains('active')) {
+            if (e.key === 'Escape' && !mobileMenu.classList.contains('hidden')) {
                 toggleMenu(false);
                 menuToggle.focus();
             }
@@ -62,13 +62,13 @@
     function initSearchOverlay() {
         const toggle = document.querySelector('.wa-search-toggle');
         const overlay = document.getElementById('search-overlay');
-        const closeBtn = overlay ? overlay.querySelector('.wa-search-overlay-close') : null;
-        const input = overlay ? overlay.querySelector('.wa-search-overlay-input') : null;
+        const input = overlay ? overlay.querySelector('input[type="search"]') : null;
 
         if (!toggle || !overlay) return;
 
         function openSearch() {
-            overlay.classList.add('active');
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
             overlay.setAttribute('aria-hidden', 'false');
             toggle.setAttribute('aria-expanded', 'true');
             document.body.classList.add('search-open');
@@ -76,7 +76,8 @@
         }
 
         function closeSearch() {
-            overlay.classList.remove('active');
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
             overlay.setAttribute('aria-hidden', 'true');
             toggle.setAttribute('aria-expanded', 'false');
             document.body.classList.remove('search-open');
@@ -84,11 +85,10 @@
         }
 
         toggle.addEventListener('click', openSearch);
-        if (closeBtn) closeBtn.addEventListener('click', closeSearch);
 
         // Close on Escape
-        overlay.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeSearch();
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeSearch();
         });
 
         // Close on backdrop click
@@ -109,8 +109,8 @@
                 const targetElement = document.querySelector(targetId);
                 if (targetElement) {
                     e.preventDefault();
-                    const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--wa-header-height')) || 72;
-                    const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - headerHeight - 20;
+                    const headerHeight = 80;
+                    const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - headerHeight;
 
                     window.scrollTo({ top: targetPosition, behavior: 'smooth' });
                     history.pushState(null, null, targetId);
@@ -120,12 +120,12 @@
     }
 
     /**
-     * External links: add target, rel, and icon
+     * External links: add target, rel
      */
     function initExternalLinks() {
         const homeUrl = window.location.hostname;
 
-        document.querySelectorAll('.wa-content a[href^="http"]').forEach(link => {
+        document.querySelectorAll('#article-content a[href^="http"], .wa-prose a[href^="http"]').forEach(link => {
             try {
                 const linkUrl = new URL(link.href);
                 if (linkUrl.hostname !== homeUrl) {

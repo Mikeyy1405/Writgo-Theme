@@ -1,19 +1,19 @@
-<footer class="wa-footer">
+<footer class="mt-auto">
 
     <!-- Trust Bar -->
-    <div class="wa-trust-bar">
-        <div class="wa-container-wide">
-            <div class="wa-trust-items">
-                <div class="wa-trust-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    <div class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-sm">
+                <div class="flex items-center gap-2 text-gray-300">
+                    <svg class="text-emerald-400 flex-shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                     <span><?php writgo_te('trust_safe'); ?></span>
                 </div>
-                <div class="wa-trust-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+                <div class="flex items-center gap-2 text-gray-300">
+                    <svg class="text-blue-400 flex-shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
                     <span><?php writgo_te('trust_independent'); ?></span>
                 </div>
-                <div class="wa-trust-item">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <div class="flex items-center gap-2 text-gray-300">
+                    <svg class="text-purple-400 flex-shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     <span><?php writgo_te('trust_gdpr'); ?></span>
                 </div>
             </div>
@@ -21,50 +21,50 @@
     </div>
 
     <!-- Main Footer -->
-    <div class="wa-footer-main">
-        <div class="wa-container-wide">
-            <div class="wa-footer-grid">
+    <div class="bg-gray-950 text-gray-400">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12">
 
                 <!-- Column 1: About -->
-                <div class="wa-footer-col wa-footer-about">
-                    <div class="wa-footer-logo">
+                <div class="sm:col-span-2 lg:col-span-1">
+                    <div class="mb-4">
                         <?php
                         $custom_logo_id = get_theme_mod('custom_logo');
                         if ($custom_logo_id) {
-                            echo wp_get_attachment_image($custom_logo_id, 'medium', false, array('class' => 'wa-footer-logo-img'));
+                            echo wp_get_attachment_image($custom_logo_id, 'medium', false, array('class' => 'h-8 w-auto brightness-0 invert opacity-80'));
                         } else {
-                            echo '<span class="wa-footer-logo-text">' . esc_html(get_bloginfo('name')) . '</span>';
+                            echo '<span class="text-xl font-bold text-white">' . esc_html(get_bloginfo('name')) . '</span>';
                         }
                         ?>
                     </div>
-                    <p class="wa-footer-disclosure">
+                    <p class="text-sm leading-relaxed text-gray-500">
                         <?php echo esc_html(writgo_get_mod('writgo_disclosure_text', 'footer_disclosure', 'Deze website bevat affiliate links. Bij aankoop ontvangen wij een kleine commissie, zonder extra kosten voor jou.')); ?>
                     </p>
                 </div>
 
                 <!-- Column 2: Navigation -->
-                <div class="wa-footer-col">
-                    <h4 class="wa-footer-title"><?php writgo_te('quick_links'); ?></h4>
+                <div>
+                    <h4 class="text-white font-semibold text-sm uppercase tracking-wider mb-4"><?php writgo_te('quick_links'); ?></h4>
                     <?php if (has_nav_menu('footer')) : ?>
                         <?php wp_nav_menu(array(
                             'theme_location' => 'footer',
                             'container'      => false,
-                            'menu_class'     => 'wa-footer-menu',
+                            'menu_class'     => 'space-y-3',
                             'depth'          => 1,
                         )); ?>
                     <?php elseif (has_nav_menu('primary')) : ?>
                         <?php wp_nav_menu(array(
                             'theme_location' => 'primary',
                             'container'      => false,
-                            'menu_class'     => 'wa-footer-menu',
+                            'menu_class'     => 'space-y-3',
                             'depth'          => 1,
                         )); ?>
                     <?php endif; ?>
                 </div>
 
                 <!-- Column 3: Legal -->
-                <div class="wa-footer-col">
-                    <h4 class="wa-footer-title"><?php writgo_te('legal'); ?></h4>
+                <div>
+                    <h4 class="text-white font-semibold text-sm uppercase tracking-wider mb-4"><?php writgo_te('legal'); ?></h4>
                     <?php
                     $lang = writgo_get_language();
                     $legal_links = array(
@@ -75,16 +75,16 @@
                     );
                     $current_links = $legal_links[$lang] ?? $legal_links['nl'];
                     ?>
-                    <ul class="wa-footer-menu">
+                    <ul class="space-y-3">
                         <?php foreach ($current_links as $slug => $translation_key) : ?>
-                            <li><a href="<?php echo esc_url(home_url('/' . $slug . '/')); ?>"><?php writgo_te($translation_key); ?></a></li>
+                            <li><a href="<?php echo esc_url(home_url('/' . $slug . '/')); ?>" class="text-sm text-gray-400 hover:text-white transition-colors"><?php writgo_te($translation_key); ?></a></li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
 
                 <!-- Column 4: Contact & Social -->
-                <div class="wa-footer-col">
-                    <h4 class="wa-footer-title"><?php writgo_te('contact'); ?></h4>
+                <div>
+                    <h4 class="text-white font-semibold text-sm uppercase tracking-wider mb-4"><?php writgo_te('contact'); ?></h4>
                     <?php
                     $company_name = get_theme_mod('writgo_company_name', '');
                     $company_email = get_theme_mod('writgo_company_email', '');
@@ -94,18 +94,18 @@
                     $company_city = get_theme_mod('writgo_company_city', '');
                     $company_postcode = get_theme_mod('writgo_company_postcode', '');
                     ?>
-                    <ul class="wa-footer-contact">
+                    <ul class="space-y-2 text-sm">
                         <?php if ($company_name) : ?>
-                            <li><strong><?php echo esc_html($company_name); ?></strong></li>
+                            <li class="text-white font-medium"><?php echo esc_html($company_name); ?></li>
                         <?php endif; ?>
                         <?php if ($company_address || $company_city) : ?>
                             <li><?php echo esc_html(trim($company_address . ', ' . $company_postcode . ' ' . $company_city, ', ')); ?></li>
                         <?php endif; ?>
                         <?php if ($company_email) : ?>
-                            <li><a href="mailto:<?php echo esc_attr($company_email); ?>"><?php echo esc_html($company_email); ?></a></li>
+                            <li><a href="mailto:<?php echo esc_attr($company_email); ?>" class="hover:text-white transition-colors"><?php echo esc_html($company_email); ?></a></li>
                         <?php endif; ?>
                         <?php if ($company_phone) : ?>
-                            <li><a href="tel:<?php echo esc_attr(preg_replace('/[^0-9+]/', '', $company_phone)); ?>"><?php echo esc_html($company_phone); ?></a></li>
+                            <li><a href="tel:<?php echo esc_attr(preg_replace('/[^0-9+]/', '', $company_phone)); ?>" class="hover:text-white transition-colors"><?php echo esc_html($company_phone); ?></a></li>
                         <?php endif; ?>
                         <?php if ($company_kvk) : ?>
                             <li>KvK: <?php echo esc_html($company_kvk); ?></li>
@@ -127,12 +127,12 @@
                         if (get_theme_mod($data['mod'], '')) { $has_social = true; break; }
                     }
                     if ($has_social) : ?>
-                    <div class="wa-footer-social">
+                    <div class="flex items-center gap-3 mt-5">
                         <?php foreach ($socials as $name => $data) :
                             $url = get_theme_mod($data['mod'], '');
                             if ($url) : ?>
-                            <a href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr(ucfirst($name)); ?>" class="wa-social-link">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><?php echo $data['svg']; ?></svg>
+                            <a href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr(ucfirst($name)); ?>" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:bg-blue-600 hover:text-white transition-all">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><?php echo $data['svg']; ?></svg>
                             </a>
                         <?php endif; endforeach; ?>
                     </div>
@@ -144,9 +144,9 @@
     </div>
 
     <!-- Footer Bottom -->
-    <div class="wa-footer-bottom">
-        <div class="wa-container-wide">
-            <p class="wa-footer-copy">
+    <div class="bg-gray-950 border-t border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <p class="text-center text-xs text-gray-600">
                 &copy; <?php echo date('Y'); ?> <?php bloginfo('name'); ?>. <?php writgo_te('all_rights_reserved'); ?>.
             </p>
         </div>
@@ -155,8 +155,8 @@
 </footer>
 
 <!-- Scroll to Top -->
-<button class="wa-scroll-top" id="scroll-top" aria-label="<?php echo esc_attr(writgo_t('back_to_top')); ?>">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<button class="fixed bottom-6 right-6 z-40 w-12 h-12 bg-white rounded-full shadow-lg border border-gray-200 text-gray-600 hover:text-blue-600 hover:shadow-xl transition-all opacity-0 translate-y-4 pointer-events-none" id="scroll-top" aria-label="<?php echo esc_attr(writgo_t('back_to_top')); ?>">
+    <svg class="mx-auto" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M18 15l-6-6-6 6"/>
     </svg>
 </button>
