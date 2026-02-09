@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Theme Constants
-define('WRITGO_VERSION', '9.3.0');
+define('WRITGO_VERSION', '12.1.0');
 define('WRITGO_DIR', get_template_directory());
 define('WRITGO_URI', get_template_directory_uri());
 
@@ -26,6 +26,89 @@ define('WRITGO_URI', get_template_directory_uri());
 if (!function_exists('writgo_sanitize_checkbox')) {
     function writgo_sanitize_checkbox($input) {
         return (isset($input) && $input == true) ? true : false;
+    }
+}
+
+/**
+ * Detect if post is a review or list article based on title
+ */
+if (!function_exists('writgo_is_review_or_list')) {
+    function writgo_is_review_or_list($post_id = null) {
+        if (!$post_id) {
+            $post_id = get_the_ID();
+        }
+
+        $title = strtolower(get_the_title($post_id));
+
+        // Keywords for reviews
+        $review_keywords = array('review', 'recensie', 'test', 'ervaring', 'ervaringen');
+
+        // Keywords for lists (with variations)
+        $list_keywords = array(
+            'beste', 'top', 'tips', 'meest', 'populairste', 'goedkoopste',
+            'duurste', 'hoogste', 'laagste', 'vergelijking', 'vergelijk',
+            'best', 'most', 'popular', 'cheapest', 'comparison', 'compare'
+        );
+
+        // Check for reviews
+        foreach ($review_keywords as $keyword) {
+            if (strpos($title, $keyword) !== false) {
+                return 'review';
+            }
+        }
+
+        // Check for lists (including variations like "top 5", "beste 10", etc.)
+        foreach ($list_keywords as $keyword) {
+            if (strpos($title, $keyword) !== false) {
+                // Also check for number variations (top 5, top 10, beste 3, etc.)
+                if (preg_match('/' . preg_quote($keyword, '/') . '\s*\d+/i', $title) ||
+                    preg_match('/\d+\s*' . preg_quote($keyword, '/') . '/i', $title) ||
+                    strpos($title, $keyword) !== false) {
+                    return 'list';
+                }
+            }
+        }
+
+        return false;
+    }
+}
+
+/**
+ * Get post badge label based on content type
+ */
+if (!function_exists('writgo_get_post_badge')) {
+    function writgo_get_post_badge($post_id = null) {
+        $type = writgo_is_review_or_list($post_id);
+        $lang = writgo_get_language();
+
+        if ($type === 'review') {
+            $labels = array(
+                'nl' => 'Review',
+                'en' => 'Review',
+                'de' => 'Rezension',
+                'fr' => 'Test'
+            );
+            return isset($labels[$lang]) ? $labels[$lang] : 'Review';
+        }
+
+        if ($type === 'list') {
+            $labels = array(
+                'nl' => 'Lijstje',
+                'en' => 'List',
+                'de' => 'Liste',
+                'fr' => 'Liste'
+            );
+            return isset($labels[$lang]) ? $labels[$lang] : 'Lijstje';
+        }
+
+        // Default to Blog
+        $labels = array(
+            'nl' => 'Blog',
+            'en' => 'Blog',
+            'de' => 'Blog',
+            'fr' => 'Blog'
+        );
+        return isset($labels[$lang]) ? $labels[$lang] : 'Blog';
     }
 }
 
@@ -4481,7 +4564,81 @@ function writgo_register_rest_meta_fields() {
 
 add_action('rest_api_init', 'writgo_register_rest_routes');
 function writgo_register_rest_routes() {
-    
+
+    // POST /wp-json/writgo/v1/switch-theme
+    register_rest_route('writgo/v1', '/switch-theme', array(
+        'methods'  => 'POST',
+        'callback' => function($request) {
+            $theme = $request->get_param('theme');
+            if (!$theme) {
+                return new WP_Error('missing_theme', 'Theme parameter required', array('status' => 400));
+            }
+            $theme_obj = wp_get_theme($theme);
+            if (!$theme_obj->exists()) {
+                return new WP_Error('theme_not_found', 'Theme not found: ' . $theme, array('status' => 404));
+            }
+            switch_theme($theme);
+            return array('success' => true, 'active_theme' => get_stylesheet());
+        },
+        'permission_callback' => function() {
+            return current_user_can('switch_themes');
+        },
+    ));
+
+    // GET /wp-json/writgo/v1/debug
+    register_rest_route('writgo/v1', '/debug', array(
+        'methods'  => 'GET',
+        'callback' => function() {
+            return array(
+                'php_version' => PHP_VERSION,
+                'memory_limit' => ini_get('memory_limit'),
+                'active_theme' => get_stylesheet(),
+                'template' => get_template(),
+                'wp_version' => get_bloginfo('version'),
+                'menus' => get_nav_menu_locations(),
+            );
+        },
+        'permission_callback' => function() {
+            return current_user_can('manage_options');
+        },
+    ));
+
+    // POST /wp-json/writgo/v1/fix-customizer
+    register_rest_route('writgo/v1', '/fix-customizer', array(
+        'methods'  => 'POST',
+        'callback' => function() {
+            global $wpdb;
+            $deleted = $wpdb->query("DELETE FROM {$wpdb->posts} WHERE post_type = 'customize_changeset' AND post_status != 'publish'");
+            wp_cache_flush();
+            return array('success' => true, 'deleted_changesets' => $deleted);
+        },
+        'permission_callback' => function() {
+            return current_user_can('manage_options');
+        },
+    ));
+
+    // POST /wp-json/writgo/v1/update-theme-from-url
+    register_rest_route('writgo/v1', '/update-theme-from-url', array(
+        'methods'  => 'POST',
+        'callback' => function($request) {
+            $url = esc_url_raw($request->get_param('package_url'));
+            if (!$url) return new WP_Error('missing', 'Need package_url', array('status' => 400));
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            require_once ABSPATH . 'wp-admin/includes/misc.php';
+            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+            $skin = new WP_Ajax_Upgrader_Skin();
+            $upgrader = new Theme_Upgrader($skin);
+            $result = $upgrader->install($url, array('overwrite_package' => true));
+            if (is_wp_error($result)) {
+                return new WP_Error('failed', $result->get_error_message(), array('status' => 500));
+            }
+            return array('success' => true, 'result' => $result);
+        },
+        'permission_callback' => function() {
+            return current_user_can('install_themes');
+        },
+    ));
+
     // GET /wp-json/writgo/v1/seo-fields
     // Retourneert lijst van alle beschikbare SEO velden
     register_rest_route('writgo/v1', '/seo-fields', array(
