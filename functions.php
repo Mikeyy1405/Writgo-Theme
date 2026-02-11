@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Theme Constants
-define('WRITGO_VERSION', '12.1.0');
+define('WRITGO_VERSION', '12.2.0');
 define('WRITGO_DIR', get_template_directory());
 define('WRITGO_URI', get_template_directory_uri());
 
@@ -2747,18 +2747,18 @@ function writgo_customizer($wp_customize) {
     // =========================================================================
     // HOMEPAGE SECTIONS
     // =========================================================================
-    
+
+    // Create Homepage Panel FIRST
+    $wp_customize->add_panel('writgo_homepage', array(
+        'title'    => writgo_admin_t('homepage_panel'),
+        'priority' => 45,
+    ));
+
     // --- Hero Section ---
     $wp_customize->add_section('writgo_homepage_hero', array(
         'title'    => writgo_admin_t('homepage_hero'),
         'priority' => 50,
         'panel'    => 'writgo_homepage',
-    ));
-    
-    // Create Homepage Panel
-    $wp_customize->add_panel('writgo_homepage', array(
-        'title'    => writgo_admin_t('homepage_panel'),
-        'priority' => 45,
     ));
     
     // Hero Show
@@ -4880,5 +4880,60 @@ function writgo_rest_update_post_seo($request) {
         'success' => true,
         'post_id' => $post_id,
         'updated' => $updated,
+    );
+}
+
+/**
+ * Debug endpoint: Check if customizer hooks are registered
+ */
+add_action('rest_api_init', function() {
+    register_rest_route('writgo/v1', '/customizer-debug', array(
+        'methods' => 'GET',
+        'callback' => 'writgo_customizer_debug',
+        'permission_callback' => '__return_true',
+    ));
+});
+
+function writgo_customizer_debug() {
+    global $wp_customize;
+
+    // Get all registered customizer panels and sections
+    $panels = array();
+    $sections = array();
+
+    if (class_exists('WP_Customize_Manager')) {
+        // Create a temporary WP_Customize instance to inspect
+        require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
+        $temp_customize = new WP_Customize_Manager();
+
+        // Trigger the customize_register hook manually
+        do_action('customize_register', $temp_customize);
+
+        // Get panels
+        foreach ($temp_customize->panels() as $panel_id => $panel) {
+            $panels[$panel_id] = array(
+                'title' => $panel->title,
+                'priority' => $panel->priority,
+            );
+        }
+
+        // Get sections
+        foreach ($temp_customize->sections() as $section_id => $section) {
+            $sections[$section_id] = array(
+                'title' => $section->title,
+                'panel' => $section->panel,
+                'priority' => $section->priority,
+            );
+        }
+    }
+
+    return array(
+        'theme' => wp_get_theme()->get('Name'),
+        'version' => WRITGO_VERSION,
+        'panels_count' => count($panels),
+        'sections_count' => count($sections),
+        'panels' => $panels,
+        'sections' => $sections,
+        'hooks_registered' => has_action('customize_register', 'writgo_customizer'),
     );
 }
